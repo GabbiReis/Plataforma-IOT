@@ -1,6 +1,6 @@
 # 🌾 AgriSense
 
-<img src="./frontend/src/assets/Logo-semfundo.png" alt="AgriSense Logo" width="120" />
+<img src="./frontend/src/assets/Logo-semfundo.png" alt="AgriSense Logo" width="120"/>
 
 ## 📘 Visão Geral
 
