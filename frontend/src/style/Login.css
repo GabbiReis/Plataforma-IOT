@@ -17,6 +17,26 @@ html, body, #root {
   background-size: cover;
   background-position: center;
 }
+.login-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+
+.login-logo {
+  width: 50px;
+  height: auto;
+  object-fit: contain;
+}
+
+.login-header h2 {
+  color: #FFD93D;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin: 0;
+}
 
 .login-form {
   background-color: rgba(51, 51, 63, 0.95);
@@ -31,12 +51,6 @@ html, body, #root {
   color: #FFD93D;
   margin-bottom: 2rem;
   font-weight: 700;
-}
-
-.login-logo {
-  display: block;
-  width: 80px;
-  margin: 0 auto 1rem auto;
 }
 
 .login-form input {
@@ -56,10 +70,11 @@ html, body, #root {
   padding: 12px;
   background-color: #FFD93D;
   border: none;
-  border-radius: 6px;
-  font-weight: bold;
+  border-radius: 8px;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.3s;
+  margin-top: 1.5rem;
 }
 
 .login-form button:hover {
