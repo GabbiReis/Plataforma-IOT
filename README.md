@@ -1,10 +1,10 @@
-# 🌾 AgriSense
+# 🌾 AgriNexus
 
-<img src="./frontend/src/assets/Logo-semfundo.png" alt="AgriSense Logo" width="120"/>
+<img src="./frontend/src/assets/logo.png" alt="AgriNexus Logo" width="120"/>
 
 ## 📘 Visão Geral
 
-O **AgriSense** é uma plataforma de **gestão e monitoramento de dados IoT** voltada ao setor agrícola.  
+O **AgriNexus** é uma plataforma de **gestão e monitoramento de dados IoT** voltada ao setor agrícola.  
 Ela permite **coletar, armazenar e visualizar em tempo real** informações provenientes de sensores de **temperatura** e **umidade do solo**, auxiliando na tomada de decisão sobre irrigação e produtividade.
 
 Com base em uma arquitetura moderna utilizando **Kubernetes**, **FastAPI**, **React**, **PostgreSQL** e **Grafana**, o sistema oferece escalabilidade, resiliência e automação por meio de pipelines **CI/CD** no **GitLab**.
