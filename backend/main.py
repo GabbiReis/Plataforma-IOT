@@ -34,20 +34,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# O Railway fornece a variável DATABASE_URL automaticamente se o banco estiver no mesmo projeto.
-# Caso contrário, ele montará usando as variáveis individuais.
+# Prioriza a DATABASE_URL (recomendado para projetos diferentes ou deploy)
 DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-if not DATABASE_URL:
+if DATABASE_URL:
+    # O SQLAlchemy exige 'postgresql://' mas o Railway pode injetar 'postgres://'
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+else:
+    # Fallback para variáveis individuais (útil para desenvolvimento local)
     DB_USER = os.getenv("DB_USER", "postgres")
-    DB_PASS = os.getenv("DB_PASS")
-    DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+    DB_PASS = os.getenv("DB_PASS", "cwDCVKjxfdBhLJMOvORxwmVknDcYjoRx") 
+    DB_HOST = os.getenv("DB_HOST", "postgres.railway.internal")
     DB_PORT = os.getenv("DB_PORT", "5432")
     DB_NAME = os.getenv("DB_NAME", "railway")
     DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
