@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 import json
 import os
 import psycopg2
-import google.generativeai as genai
+import google.genai as genai
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente do arquivo .env

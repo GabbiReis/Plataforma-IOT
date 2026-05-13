@@ -5,5 +5,5 @@ sqlalchemy
 passlib
 bcrypt==4.0.1
 requests
-google-generativeai
+google-genai
 python-dotenv
