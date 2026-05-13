@@ -2,12 +2,11 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
 from passlib.context import CryptContext
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey, Float
 import json
 import os
 import psycopg2
@@ -44,7 +43,7 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 if not DATABASE_URL:
     DB_USER = os.getenv("DB_USER", "postgres")
     DB_PASS = os.getenv("DB_PASS")
-    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
     DB_PORT = os.getenv("DB_PORT", "5432")
     DB_NAME = os.getenv("DB_NAME", "railway")
     DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
