@@ -320,14 +320,19 @@ def obter_dica_ia(sensor_id: int, db=Depends(get_db)):
     """Rota turbinada que usa o Gemini para analisar múltiplos sensores ao mesmo tempo."""
     
     sensor_alvo = db.query(Sensor).filter(Sensor.id == sensor_id).first()
-    if not sensor_alvo:
-        return {"dica": "Sensor não encontrado."}
+
+    # Busca leituras manuais/simuladas
+    leituras_recentes = []
+    if sensor_alvo:
+        leituras_recentes = db.query(Leitura).join(Sensor).filter(Sensor.estufa_id == sensor_alvo.estufa_id).order_by(Leitura.registrado_em.desc()).limit(20).all()
     
-    leituras_recentes = db.query(Leitura).join(Sensor).filter(Sensor.estufa_id == sensor_alvo.estufa_id).order_by(Leitura.registrado_em.desc()).limit(20).all()
+    # Também busca as últimas leituras da LILYGO (IoT Física)
+    leituras_iot = db.query(LeituraIoTModel).order_by(LeituraIoTModel.registrado_em.desc()).limit(10).all()
     
-    if not leituras_recentes:
+    if not leituras_recentes and not leituras_iot:
         return {"dica": "Aguardando mais dados dos sensores para gerar uma análise agrícola completa..."}
 
+    # Mapeamento de significados para a IA
     significados = {
         "Temperatura Ar": "Calor do ambiente (em °C).",
         "Umidade Ar": "Quantidade de água no ar (em %).",
@@ -340,6 +345,7 @@ def obter_dica_ia(sensor_id: int, db=Depends(get_db)):
     }
 
     resumo_dados = []
+    # Processa leituras da tabela padrão
     for leitura in leituras_recentes:
         tipo_curto = leitura.sensor.tipo.split('(')[0].strip()
         significado = significados.get(tipo_curto, leitura.sensor.tipo)
@@ -349,6 +355,17 @@ def obter_dica_ia(sensor_id: int, db=Depends(get_db)):
             "tipo": leitura.sensor.tipo,
             "valor": leitura.valor,
             "significado": significado
+        })
+    
+    # Processa leituras da LILYGO (IoT)
+    for iot in leituras_iot:
+        resumo_dados.append({
+            "sensor": f"LILYGO ({iot.device})",
+            "tipo": "Multi-Sensor",
+            "temp": iot.temp_ar,
+            "umidade_solo": iot.umidade_solo,
+            "luz": iot.luz,
+            "bateria": iot.bateria
         })
 
     contexto_json = json.dumps(resumo_dados, indent=2, ensure_ascii=False)

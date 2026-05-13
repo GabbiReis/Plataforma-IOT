@@ -11,7 +11,7 @@ export default function Analises() {
   const [usuario, setUsuario] = useState(null);
   
   const [dadosGrafico, setDadosGrafico] = useState([]);
-  const [dicaIA, setDicaIA] = useState("A aguardar recolha de dados suficientes para análise preditiva...");
+  const [dicaIA, setDicaIA] = useState("Aguardando coleta de dados suficientes para análise preditiva...");
   const [carregandoIA, setCarregandoIA] = useState(true);
   const [dadosVitais, setDadosVitais] = useState({
     temperatura: "--", umidade_solo: "--", luz: "--", bateria: "--"
@@ -54,7 +54,7 @@ export default function Analises() {
         if(dataIA.dica) setDicaIA(dataIA.dica);
       } catch (error) {
         console.error("Erro ao carregar IA:", error);
-        setDicaIA("IA em modo de espera. Monitorizando novos padrões climáticos na estufa.");
+        setDicaIA("IA em modo de espera. Monitorando novos padrões climáticos na estufa.");
       } finally {
         setCarregandoIA(false);
       }
