@@ -321,11 +321,11 @@ def obter_dica_ia(sensor_id: int, db=Depends(get_db)):
     
     sensor_alvo = db.query(Sensor).filter(Sensor.id == sensor_id).first()
 
-    # Busca leituras manuais/simuladas
+    # Busca leituras manuais/simuladas (Se o sensor existir)
     leituras_recentes = []
     if sensor_alvo:
         leituras_recentes = db.query(Leitura).join(Sensor).filter(Sensor.estufa_id == sensor_alvo.estufa_id).order_by(Leitura.registrado_em.desc()).limit(20).all()
-    
+
     # Também busca as últimas leituras da LILYGO (IoT Física)
     leituras_iot = db.query(LeituraIoTModel).order_by(LeituraIoTModel.registrado_em.desc()).limit(10).all()
     
