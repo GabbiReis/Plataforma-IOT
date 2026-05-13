@@ -88,7 +88,7 @@ export default function Register() {
           </Link>
 
           <h1 className="login-title">Criar Conta</h1>
-          <p className="login-subtitle">Preencha os dados abaixo para se registar no sistema.</p>
+          <p className="login-subtitle">Preencha os dados abaixo para se registrar no sistema.</p>
 
           {erro && (
             <div style={{ 
@@ -147,11 +147,11 @@ export default function Register() {
             </div>
 
             <div className="input-group">
-              <label htmlFor="password">Palavra-passe</label>
+              <label htmlFor="password">Senha</label>
               <input 
                 type="password" 
                 id="password" 
-                placeholder="Crie uma palavra-passe" 
+                placeholder="Crie uma senha" 
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required 
@@ -159,11 +159,11 @@ export default function Register() {
             </div>
 
             <div className="input-group">
-              <label htmlFor="confirm-password">Confirmar Palavra-passe</label>
+              <label htmlFor="confirm-password">Confirmar Senha</label>
               <input 
                 type="password" 
                 id="confirm-password" 
-                placeholder="Repita a palavra-passe" 
+                placeholder="Repita a senha" 
                 value={confirmarSenha}
                 onChange={(e) => setConfirmarSenha(e.target.value)}
                 required 
@@ -171,7 +171,7 @@ export default function Register() {
             </div>
 
             <button type="submit" className="btn-login" style={{ width: "100%" }}>
-              REGISTAR
+              REGISTRAR
             </button>
           </form>
 
