@@ -1,112 +1,101 @@
 import { Link } from "react-router-dom";
+import "../styles/layout.css";
+import farmBg from "../assets/images/farm-bg.png";
 
 export default function Landing() {
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: `
-        radial-gradient(circle at 20% 10%, rgba(99,214,108,0.25), transparent 40%),
-        radial-gradient(circle at 80% 30%, rgba(191,243,167,0.22), transparent 45%),
-        linear-gradient(180deg, #07160f, #0f2a1f)
-      `,
-      color: "white",
-      display: "grid",
-      placeItems: "center",
-      padding: 20
-    }}>
-      <div style={{
-        width: "min(1100px, 100%)",
-        borderRadius: 28,
-        padding: 26,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: "rgba(255,255,255,0.06)",
-        boxShadow: "0 30px 80px rgba(0,0,0,0.35)"
-      }}>
-        <header style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:16}}>
-          <div style={{fontWeight:900, letterSpacing:1}}>AgriNexus</div>
-          <nav style={{display:"flex", gap:16, opacity:0.9}}>
-            <a href="#about">Sobre</a>
-            <a href="#features">Informações</a>
-            <a href="#contact">Contato</a>
-          </nav>
-          <Link to="/dashboard" style={{
-            padding:"10px 14px",
-            borderRadius: 14,
-            background:"linear-gradient(135deg, var(--green-300), var(--green-500))",
-            color:"#062114",
-            fontWeight:800
-          }}>
-            Abrir Dashboard
-          </Link>
-        </header>
+  
+  const scrollToSection = (e, id) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
-        <section style={{
-          marginTop: 26,
-          display:"grid",
-          gridTemplateColumns:"1.2fr 0.8fr",
-          gap: 18,
-          alignItems:"center"
-        }}>
-          <div>
-            <div style={{opacity:0.85, fontWeight:700}}>Plataforma Kubernetes + IoT</div>
-            <h1 style={{
-              fontSize: 72,
-              lineHeight: 0.95,
-              margin: "10px 0 10px",
-              letterSpacing: -2
-            }}>
-              AgriNexus
-            </h1>
-            <p style={{maxWidth:520, opacity:0.9, marginTop:10}}>
-              O AgriNexus integra sensores IoT, Kubernetes e observabilidade para monitoramento agrícola em tempo real.
+  return (
+    <div id="inicio" style={{ width: '100%', overflowX: 'hidden' }}>
+      
+      <div 
+        className="hero-section" 
+        style={{
+          backgroundImage: `url(${farmBg})`,
+          backgroundAttachment: 'fixed',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'cover',
+          minHeight: '100vh', 
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div className="landing-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          
+          <header className="landing-header">
+            <div className="logo">
+              <span className="logo-icon">🌿</span> AgriNexus
+            </div>
+
+            <nav className="menu">
+              <a href="#inicio" onClick={(e) => scrollToSection(e, 'inicio')}>INICIO</a>
+              <a href="#info" onClick={(e) => scrollToSection(e, 'info')}>- INFO -</a>
+              <a href="#contato" onClick={(e) => scrollToSection(e, 'contato')}>CONTATO</a>
+            </nav>
+
+            <Link className="btn-outline" to="/login">
+              ABRIR DASHBOARD
+            </Link>
+          </header>
+
+          <main className="hero-center" style={{ margin: 'auto' }}>
+            <h1 className="huge-title">AGRI<span className="text-light">NEXUS</span></h1>
+            
+            <p className="subtitle">
+              Plataforma de agricultura inteligente que integra sensores IoT, 
+              Inteligência Artificial e análise de dados para monitoramento agrícola em tempo real.
             </p>
 
-            <div style={{display:"flex", gap:12, marginTop:18}}>
-              <Link to="/dashboard" style={{
-                padding:"12px 16px",
-                borderRadius: 16,
-                background:"var(--green-500)",
-                color:"#062114",
-                fontWeight:900
-              }}>
-                Comece
-              </Link>
-              <a href="#features" style={{
-                padding:"12px 16px",
-                borderRadius: 16,
-                border:"1px solid rgba(255,255,255,0.18)",
-                fontWeight:800
-              }}>
-                Ver recursos
-              </a>
-            </div>
-          </div>
+            <Link to="/login" className="btn-primary-pill">
+              COMEÇAR AGORA
+            </Link>
+          </main>
 
-          {/* Aqui você coloca uma imagem/ilustração ou um “card vídeo” */}
-          <div style={{
-            height: 320,
-            borderRadius: 22,
-            border:"1px solid rgba(255,255,255,0.12)",
-            background:"rgba(0,0,0,0.20)",
-            display:"flex",
-            alignItems:"flex-end",
-            padding: 14
-          }}>
-            <div style={{
-              width:"100%",
-              padding: 14,
-              borderRadius: 18,
-              background:"rgba(255,255,255,0.06)",
-              border:"1px solid rgba(255,255,255,0.10)"
-            }}>
-              <div style={{fontWeight:900}}>Demo / Preview</div>
-              <div style={{fontSize:12, opacity:0.85, marginTop:6}}>
-                Card para vídeo/print do dashboard.
-              </div>
+          <footer className="hero-footer">
+            
+            <div className="features-mini">
+              <span>🌱 Monitoramento IoT</span>
+              <span>🧠 Inteligência Artificial</span>
+              <span>📊 Dashboard Analítico</span>
             </div>
-          </div>
-        </section>
+
+            <div className="social-links">
+              <a href="#fb">f</a>
+              <a href="#ig">📷</a>
+              <a href="#yt">▶</a>
+            </div>
+          </footer>
+        </div>
       </div>
+      
+      <section id="info" style={{ padding: '100px 20px', backgroundColor: '#f8f9fa', textAlign: 'center', minHeight: '60vh' }}>
+        <h2 style={{ fontSize: '36px', color: '#0A2518' }}>Como funciona o AgriNexus?</h2>
+        <p style={{ color: '#666', maxWidth: '800px', margin: '20px auto', lineHeight: '1.6' }}>
+          Nossa arquitetura moderna coleta dados em tempo real dos sensores espalhados pela fazenda. 
+          A inteligência artificial analisa a saúde do solo, umidade e temperatura, enviando dicas 
+          diretas para o seu painel de controle.
+        </p>
+      </section>
+
+      <section id="contato" style={{ padding: '100px 20px', backgroundColor: '#0A2518', color: 'white', textAlign: 'center', minHeight: '50vh' }}>
+        <h2 style={{ fontSize: '36px', color: '#84E034' }}>Fale Conosco</h2>
+        <p style={{ maxWidth: '600px', margin: '20px auto', opacity: 0.8 }}>
+          Pronto para revolucionar a sua gestão agrícola? Entre em contato com a nossa equipe
+          para agendar uma demonstração completa do sistema em sua fazenda.
+        </p>
+        <button style={{ background: '#84E034', color: '#0A2518', padding: '15px 30px', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', marginTop: '20px', cursor: 'pointer' }}>
+          Enviar Mensagem
+        </button>
+      </section>
+
     </div>
   );
 }
