@@ -31,13 +31,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASS = os.getenv("DB_PASS", "kFxmmWRmtSmpjWXOYDtQsAskBKlRhzvK")
-DB_HOST = os.getenv("DB_HOST", "postgres.railway.internal")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "railway")
+# O Railway fornece a variável DATABASE_URL automaticamente se o banco estiver no mesmo projeto.
+# Caso contrário, ele montará usando as variáveis individuais.
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+if not DATABASE_URL:
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASS = os.getenv("DB_PASS")
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "railway")
+    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -103,7 +109,7 @@ def get_db():
     finally:
         db.close()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyBt4TI9YhphM-jHfgZWIlhbzdc1UL7dgGs")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 modelo_ia = genai.GenerativeModel('gemini-2.5-flash')
 
