@@ -114,8 +114,11 @@ def get_db():
         db.close()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# Inicializa o cliente seguindo a nova documentação da google-genai
-client_ia = genai.Client(api_key=GEMINI_API_KEY)
+client_ia = None
+
+if GEMINI_API_KEY:
+    # Inicializa o cliente seguindo a nova documentação da google-genai
+    client_ia = genai.Client(api_key=GEMINI_API_KEY)
 
 class UsuarioCreate(BaseModel):
     nome_completo: str
