@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 import json
 import os
 import psycopg2
-import google.genai as genai
+from google import genai
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente do arquivo .env
@@ -114,8 +114,8 @@ def get_db():
         db.close()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
-modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
+# Inicializa o cliente seguindo a nova documentação da google-genai
+client_ia = genai.Client(api_key=GEMINI_API_KEY)
 
 class UsuarioCreate(BaseModel):
     nome_completo: str
@@ -370,7 +370,7 @@ def obter_dica_ia(sensor_id: int, db=Depends(get_db)):
     """
 
     try:
-        resposta = modelo_ia.generate_content(prompt)
+        resposta = client_ia.models.generate_content(model='gemini-1.5-flash', contents=prompt)
         return {"dica": resposta.text}
     except Exception as e:
         print(f"ERRO FATAL NA IA: {str(e)}")
@@ -391,8 +391,8 @@ async def chat_agrinexus(req: MensagemChat):
         # Junta a personalidade com a pergunta do usuário
         prompt_final = contexto_do_sistema + req.mensagem
         
-        # Pede a resposta pro Gemini (usando o modelo_ia já configurado)
-        resposta_ia = modelo_ia.generate_content(prompt_final)
+        # Pede a resposta pro Gemini (usando o client_ia já configurado)
+        resposta_ia = client_ia.models.generate_content(model='gemini-1.5-flash', contents=prompt_final)
         
         # Devolve pro React
         return {"resposta": resposta_ia.text}

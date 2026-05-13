@@ -5,6 +5,8 @@ import Topbar from "../components/Topbar";
 import { User, Bell, Shield, Cpu, Save, Wifi, PlusCircle, CheckCircle2, Activity } from "lucide-react";
 import "../styles/dashboard.css";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export default function Configuracoes() {
   const navigate = useNavigate();
   
@@ -58,7 +60,7 @@ export default function Configuracoes() {
     };
 
     try {
-      const resposta = await fetch("http://localhost:8000/sensores", {
+      const resposta = await fetch(`${API_URL}/sensores`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(novoSensor)

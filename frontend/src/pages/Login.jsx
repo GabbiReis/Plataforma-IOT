@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -16,7 +18,7 @@ export default function Login() {
     setSucesso("");
 
     try {
-      const response = await fetch("http://localhost:8000/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

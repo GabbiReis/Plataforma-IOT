@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css"; 
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export default function Register() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -33,7 +35,7 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/usuarios", {
+      const response = await fetch(`${API_URL}/usuarios`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
