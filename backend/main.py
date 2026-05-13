@@ -12,6 +12,10 @@ import json
 import os
 import psycopg2
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -39,8 +43,8 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 
 if not DATABASE_URL:
     DB_USER = os.getenv("DB_USER", "postgres")
-    DB_PASS = os.getenv("DB_PASS")
-    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PASS = os.getenv("DB_PASS", "kFxmmWRmtSmpjWXOYDtQsAskBKlRhzvK")
+    DB_HOST = os.getenv("DB_HOST", "postgres.railway.internal")
     DB_PORT = os.getenv("DB_PORT", "5432")
     DB_NAME = os.getenv("DB_NAME", "railway")
     DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
