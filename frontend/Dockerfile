@@ -12,4 +12,8 @@ RUN apk add --no-cache gettext
 COPY --from=builder /app/dist /usr/share/nginx/html
 # Copiamos o conf como um template
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+
+# Define uma porta padrão (80) para rodar localmente. O Railway vai sobrescrever isso na nuvem.
+ENV PORT=80
+
 CMD ["/bin/sh", "-c", "envsubst '$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

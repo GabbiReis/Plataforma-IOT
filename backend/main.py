@@ -386,7 +386,7 @@ def obter_dica_ia(db=Depends(get_db)):
     """
 
     try:
-        resposta = client_ia.models.generate_content(model='gemini-1.5-flash', contents=prompt)
+        resposta = client_ia.models.generate_content(model='gemini-2.0-flash', contents=prompt)
         return {"dica": resposta.text}
     except Exception as e:
         print(f"ERRO FATAL NA IA: {str(e)}")
@@ -408,7 +408,7 @@ async def chat_agrinexus(req: MensagemChat):
         prompt_final = contexto_do_sistema + req.mensagem
         
         # Pede a resposta pro Gemini (usando o client_ia já configurado)
-        resposta_ia = client_ia.models.generate_content(model='gemini-1.5-flash', contents=prompt_final)
+        resposta_ia = client_ia.models.generate_content(model='gemini-2.0-flash', contents=prompt_final)
         
         # Devolve pro React
         return {"resposta": resposta_ia.text}
