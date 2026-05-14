@@ -8,10 +8,26 @@ export default function ChatbotWidget() {
   const [aberto, setAberto] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [historico, setHistorico] = useState([
-    { autor: "bot", texto: "Olá! Sou a IA do AgriNexus. Como posso ajudar com a sua plantação hoje?" }
+    { autor: "bot", texto: "Olá! Sou a IA do AgriNexus. Como posso ajudar com a sua plantação hoje? 🌱" }
   ]);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false); // Novo estado para controlar o login
   
   const fimDoChatRef = useRef(null);
+
+  // Efeito para verificar o status de login do localStorage
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const user = localStorage.getItem("usuarioLogado");
+      setIsUserLoggedIn(!!user); // Define como true se o usuário existir, false caso contrário
+    };
+
+    // Verifica imediatamente ao montar o componente
+    checkLoginStatus();
+
+    // Adiciona um listener para o evento 'storage' para reagir a mudanças em outras abas/janelas
+    window.addEventListener('storage', checkLoginStatus);
+    return () => window.removeEventListener('storage', checkLoginStatus); // Limpa o listener
+  }, []); // Executa apenas uma vez ao montar
 
   useEffect(() => {
     if (fimDoChatRef.current) {
@@ -53,9 +69,8 @@ export default function ChatbotWidget() {
     }
   };
 
-  // TRAVA DE SEGURANÇA: Só mostra o chat se o usuário estiver logado!
-  const userLogado = localStorage.getItem("usuarioLogado");
-  if (!userLogado) return null;
+  // TRAVA DE SEGURANÇA: Só mostra o chat se o usuário estiver logado (usando o novo estado)
+  if (!isUserLoggedIn) return null;
 
   return (
     <div style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 9999 }}>
