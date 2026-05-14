@@ -49,7 +49,7 @@ export default function Analises() {
     const buscarDicaIA = async () => {
       setCarregandoIA(true);
       try {
-        const resIA = await fetch(`${API_URL}/analises/dica-ia/1`);
+        const resIA = await fetch(`${API_URL}/analises/dica-ia`);
         const dataIA = await resIA.json();
         if(dataIA.dica) setDicaIA(dataIA.dica);
       } catch (error) {

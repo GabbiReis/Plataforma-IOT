@@ -315,16 +315,12 @@ def obter_historico(sensor_id: int, db=Depends(get_db)):
     leituras = db.query(Leitura).filter(Leitura.sensor_id == sensor_id).order_by(Leitura.registrado_em.desc()).limit(20).all()
     return list(reversed(leituras))
 
-@app.get("/analises/dica-ia/{sensor_id}", tags=["Análises"])
-def obter_dica_ia(sensor_id: int, db=Depends(get_db)):
-    """Rota turbinada que usa o Gemini para analisar múltiplos sensores ao mesmo tempo."""
+@app.get("/analises/dica-ia", tags=["Análises"])
+def obter_dica_ia(db=Depends(get_db)):
+    """Rota turbinada que usa o Gemini para analisar o status geral da estufa e sensores IoT."""
     
-    sensor_alvo = db.query(Sensor).filter(Sensor.id == sensor_id).first()
-
-    # Busca leituras manuais/simuladas (Se o sensor existir)
-    leituras_recentes = []
-    if sensor_alvo:
-        leituras_recentes = db.query(Leitura).join(Sensor).filter(Sensor.estufa_id == sensor_alvo.estufa_id).order_by(Leitura.registrado_em.desc()).limit(20).all()
+    # Busca as últimas leituras manuais/simuladas de qualquer sensor na estufa
+    leituras_recentes = db.query(Leitura).order_by(Leitura.registrado_em.desc()).limit(20).all()
 
     # Também busca as últimas leituras da LILYGO (IoT Física)
     leituras_iot = db.query(LeituraIoTModel).order_by(LeituraIoTModel.registrado_em.desc()).limit(10).all()
