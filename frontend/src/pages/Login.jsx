@@ -46,6 +46,7 @@ export default function Login() {
         setSucesso("Acesso liberado! Entrando no sistema...");
         
         localStorage.setItem("usuarioLogado", JSON.stringify(data.usuario));
+        window.dispatchEvent(new Event("storage"));
 
         if (lembrar) {
           localStorage.setItem('emailLembrado', email);
