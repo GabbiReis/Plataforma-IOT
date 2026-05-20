@@ -39,7 +39,8 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
 
   const fazerLogout = () => {
     localStorage.removeItem("usuarioLogado");
-    navigate("/login");
+    window.dispatchEvent(new Event("storage"));
+    navigate("/");
   };
 
   // Lógica para cor da bateria

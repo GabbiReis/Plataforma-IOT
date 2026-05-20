@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
   BarChart2, 
@@ -14,6 +14,7 @@ import {
 export default function Sidebar() {
   const [fotoFazenda, setFotoFazenda] = useState(null);
   const inputFotoRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fotoSalva = localStorage.getItem("fotoFazenda");
@@ -34,6 +35,13 @@ export default function Sidebar() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleLogout = (e) => {
+    e.preventDefault();
+    localStorage.removeItem("usuarioLogado");
+    window.dispatchEvent(new Event("storage"));
+    navigate("/");
   };
 
   return (
@@ -112,10 +120,10 @@ export default function Sidebar() {
           </button>
         </div>
 
-        <NavLink to="/login" className="nav-item logout">
+        <div onClick={handleLogout} className="nav-item logout" style={{ cursor: 'pointer' }}>
           <LogOut size={20} />
           <span>Sair</span>
-        </NavLink>
+        </div>
       </div>
 
     </aside>
