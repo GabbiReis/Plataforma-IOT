@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import "../styles/dashboard.css"; 
 import ChartCard from "../components/ChartCard";
-import { AlertTriangle, CheckCircle2, Droplets, ThermometerSun, ArrowLeftRight, Settings2 } from "lucide-react"; 
+import { AlertTriangle, CheckCircle2, Droplets, ThermometerSun, ArrowLeftRight, Settings2, RefreshCcw } from "lucide-react"; 
 import imgAgricultor from "../assets/images/agrucutor-acompanhando.jpg";
 import videoDrone from "../assets/videos/drone-monitoramento.mp4";
 
@@ -23,7 +23,8 @@ export default function Dashboard() {
     pressao: "--",
     luz: "--",
     bateria: "--",
-    wifi: "--"
+    wifi: "--",
+    atualizacao: "--"
   });
 
   useEffect(() => {
@@ -40,6 +41,15 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
+  const formatarDataHora = (isoString) => {
+    if (!isoString) return "--";
+    const data = new Date(isoString);
+    return new Intl.DateTimeFormat('pt-BR', { 
+      day: '2-digit', month: '2-digit', year: 'numeric', 
+      hour: '2-digit', minute: '2-digit', second: '2-digit' 
+    }).format(data);
+  };
+
   useEffect(() => {
     if (!usuario) return;
 
@@ -54,7 +64,8 @@ export default function Dashboard() {
           pressao: typeof dadosReais.pressao === 'number' ? dadosReais.pressao.toFixed(1) : (dadosReais.pressao ?? "--"),
           luz: typeof dadosReais.luz === 'number' ? Math.round(dadosReais.luz) : (dadosReais.luz ?? "--"),
           bateria: typeof dadosReais.bateria === 'number' ? dadosReais.bateria.toFixed(2) : (dadosReais.bateria ?? "--"),
-          wifi: typeof dadosReais.rssi === 'number' ? Math.round(dadosReais.rssi) : (dadosReais.rssi ?? "--")
+          wifi: typeof dadosReais.rssi === 'number' ? Math.round(dadosReais.rssi) : (dadosReais.rssi ?? "--"),
+          atualizacao: dadosReais.registrado_em ? formatarDataHora(dadosReais.registrado_em) : "--"
         });
 
         // Busca o histórico real do banco para desenhar nos gráficos interativos
@@ -118,6 +129,18 @@ export default function Dashboard() {
         <Topbar usuario={usuario} statusIot={dadosVitais} />
 
         <div className="dashboard-content">
+
+          {/* CABEÇALHO COM A ÚLTIMA SINCRONIZAÇÃO */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '15px' }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '24px', color: '#0A2518' }}>Visão Geral da Fazenda</h1>
+              <p style={{ margin: '5px 0 0 0', color: '#666' }}>Acompanhe os dados da sua estufa em tempo real</p>
+            </div>
+            <div style={{ fontSize: '13px', color: '#666', background: 'white', padding: '8px 16px', borderRadius: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <RefreshCcw size={16} color={dadosVitais.atualizacao !== "--" ? "#84E034" : "#ccc"} /> 
+              <b>Última Sincronização:</b> {dadosVitais.atualizacao}
+            </div>
+          </div>
 
           {/* ========================================================== */}
           {/* NOVA SEÇÃO: ALERTAS INTELIGENTES E SINAIS VITAIS DO SENSOR */}

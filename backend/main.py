@@ -274,10 +274,11 @@ async def buscar_ultima_leitura(db=Depends(get_db)):
                 "pressao": resultado.pressao,
                 "luz": resultado.luz,
                 "bateria": resultado.bateria,
-                "rssi": resultado.rssi
+                "rssi": resultado.rssi,
+                "registrado_em": resultado.registrado_em.isoformat() if resultado.registrado_em else None
             }
         else:
-            return {"temperatura": "--", "umidade_solo": "--", "pressao": "--", "luz": "--", "bateria": "--", "rssi": "--"}
+            return {"temperatura": "--", "umidade_solo": "--", "pressao": "--", "luz": "--", "bateria": "--", "rssi": "--", "registrado_em": None}
 
     except Exception as e:
         return {"erro": f"Falha ao buscar no banco: {str(e)}"}
