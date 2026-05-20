@@ -31,7 +31,10 @@ export default function Configuracoes() {
     const salvos = localStorage.getItem("limitesAlertas");
     return salvos ? JSON.parse(salvos) : { tempMax: 32, umidMin: 40, nitro: 20 };
   });
-  const [notificacoes, setNotificacoes] = useState({ email: true, ia: true, faturas: false });
+  const [notificacoes, setNotificacoes] = useState(() => {
+    const salvos = localStorage.getItem("notificacoesPrefs");
+    return salvos ? JSON.parse(salvos) : { email: true, ia: true, faturas: false };
+  });
 
   useEffect(() => {
     const userLogado = localStorage.getItem("usuarioLogado");
@@ -96,6 +99,7 @@ export default function Configuracoes() {
 
       // Salva os novos limites e emite um aviso para atualizar os alertas na hora
       localStorage.setItem("limitesAlertas", JSON.stringify(limites));
+      localStorage.setItem("notificacoesPrefs", JSON.stringify(notificacoes));
       window.dispatchEvent(new Event("limitesAtualizados"));
 
       setSalvando(false);

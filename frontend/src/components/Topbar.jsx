@@ -25,6 +25,29 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
     return () => window.removeEventListener("limitesAtualizados", atualizarLimites);
   }, []);
 
+  // NOVOS ESTADOS PARA MENSAGENS E ALERTAS REAIS
+  const [mensagemIA, setMensagemIA] = useState("Analisando dados recentes da estufa...");
+  const [faturasPendentes, setFaturasPendentes] = useState(0);
+  const [tarefasAtrasadas, setTarefasAtrasadas] = useState(0);
+
+  // BUSCA DADOS REAIS DE OUTROS MÓDULOS PARA O SININHO
+  useEffect(() => {
+    if (usuario?.id) {
+      fetch(`${API_URL}/faturas/${usuario.id}`)
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setFaturasPendentes(data.filter(f => f.status === 'Em Aberto').length); })
+        .catch(() => {});
+      
+      fetch(`${API_URL}/analises/dica-ia`)
+        .then(res => res.json())
+        .then(data => { if (data.dica && !data.dica.includes("429") && !data.dica.includes("Quota")) setMensagemIA(data.dica); })
+        .catch(() => {});
+    }
+    
+    const tarefas = JSON.parse(localStorage.getItem('agendamentosAgriNexus') || '[]');
+    setTarefasAtrasadas(tarefas.filter(t => t.status === 'Atrasado').length);
+  }, [usuario]);
+
   // Busca dados IoT automaticamente para as páginas que não possuem a prop "statusIot"
   useEffect(() => {
     if (!statusIot) {
@@ -89,9 +112,17 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
     if (!isNaN(sinal) && sinal < -80) {
       alertas.push({ id: 5, tipo: 'aviso', titulo: '📶 Sinal Instável', texto: `A conexão Wi-Fi do sensor está muito fraca (${sinal} dBm).` });
     }
+
+    // ALERTAS DE DADOS REAIS: FINANCEIRO E AGENDAMENTOS
+    if (faturasPendentes > 0) {
+      alertas.push({ id: 6, tipo: 'aviso', titulo: '💳 Fatura Pendente', texto: `Você possui ${faturasPendentes} fatura(s) aguardando pagamento no sistema.` });
+    }
+    if (tarefasAtrasadas > 0) {
+      alertas.push({ id: 7, tipo: 'critico', titulo: '⏰ Tarefas Atrasadas', texto: `Existem ${tarefasAtrasadas} agendamento(s) em atraso na sua estufa.` });
+    }
     
     if (alertas.length === 0) {
-      alertas.push({ id: 6, tipo: 'sucesso', titulo: '✅ Ambiente Estável', texto: 'Todas as métricas da estufa estão dentro do padrão ideal.' });
+      alertas.push({ id: 8, tipo: 'sucesso', titulo: '✅ Tudo em Ordem', texto: 'Métricas da estufa, finanças e agendamentos estão em dia.' });
     }
     return alertas;
   };
@@ -144,16 +175,12 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
           </button>
           
           {menuAberto === 'mensagens' && (
-            <div style={{ position: 'absolute', top: '50px', right: '-50px', width: '300px', background: 'white', borderRadius: '12px', boxShadow: '0 5px 20px rgba(0,0,0,0.1)', zIndex: 100, padding: '16px' }}>
-              <h4 style={{ margin: '0 0 12px 0', color: '#0A2518' }}>Mensagens (2)</h4>
+            <div style={{ position: 'absolute', top: '50px', right: '-50px', width: '320px', background: 'white', borderRadius: '12px', boxShadow: '0 5px 20px rgba(0,0,0,0.1)', zIndex: 100, padding: '16px' }}>
+              <h4 style={{ margin: '0 0 12px 0', color: '#0A2518' }}>Caixa de Entrada (1)</h4>
               
-              <div style={{ fontSize: '13px', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>
-                <strong style={{ color: '#0A2518' }}>Agrônomo Carlos:</strong>
-                <p style={{ margin: '4px 0 0 0', color: '#666' }}>A estufa Leste precisa de atenção na irrigação hoje à tarde.</p>
-              </div>
-              <div style={{ fontSize: '13px' }}>
-                <strong style={{ color: '#0A2518' }}>Suporte AgriNexus:</strong>
-                <p style={{ margin: '4px 0 0 0', color: '#666' }}>Sua fatura de manutenção foi gerada com sucesso.</p>
+              <div style={{ fontSize: '13px', paddingBottom: '10px' }}>
+                <strong style={{ color: '#0A2518', display: 'flex', alignItems: 'center', gap: '6px' }}>🤖 AgriNexus AI Insights:</strong>
+                <p style={{ margin: '6px 0 0 0', color: '#666', lineHeight: '1.5' }}>{mensagemIA}</p>
               </div>
             </div>
           )}

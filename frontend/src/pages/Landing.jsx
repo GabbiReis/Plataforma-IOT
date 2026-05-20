@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/layout.css";
 import farmBg from "../assets/images/farm-bg.png";
 
 export default function Landing() {
+  const [formContato, setFormContato] = useState({ nome: "", email: "", mensagem: "" });
+  const [enviado, setEnviado] = useState(false);
   
   const scrollToSection = (e, id) => {
     e.preventDefault();
@@ -10,6 +13,16 @@ export default function Landing() {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleEnviarContato = (e) => {
+    e.preventDefault();
+    // Aqui simulamos o envio da mensagem. Num sistema real, mandaria para o backend.
+    setEnviado(true);
+    setFormContato({ nome: "", email: "", mensagem: "" });
+    
+    // Oculta a mensagem de sucesso após 5 segundos
+    setTimeout(() => setEnviado(false), 5000);
   };
 
   return (
@@ -91,9 +104,54 @@ export default function Landing() {
           Pronto para revolucionar a sua gestão agrícola? Entre em contato com a nossa equipe
           para agendar uma demonstração completa do sistema em sua fazenda.
         </p>
-        <button style={{ background: '#84E034', color: '#0A2518', padding: '15px 30px', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', marginTop: '20px', cursor: 'pointer' }}>
-          Enviar Mensagem
-        </button>
+        
+        <div style={{ maxWidth: '500px', margin: '40px auto', background: 'rgba(255,255,255,0.05)', padding: '30px', borderRadius: '16px', border: '1px solid rgba(132, 224, 52, 0.2)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          {enviado ? (
+            <div style={{ color: '#84E034', fontWeight: 'bold', fontSize: '18px', padding: '30px 0', animation: 'fadeInDown 0.5s' }}>
+              ✅ Mensagem enviada com sucesso!<br/>
+              <span style={{ fontSize: '14px', color: '#A0B2A6', display: 'block', marginTop: '10px' }}>Entraremos em contato em breve.</span>
+            </div>
+          ) : (
+            <form onSubmit={handleEnviarContato} style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', color: '#A0B2A6', fontWeight: 'bold' }}>Seu Nome</label>
+                <input 
+                  required 
+                  type="text" 
+                  placeholder="Como podemos te chamar?" 
+                  value={formContato.nome} 
+                  onChange={(e) => setFormContato({...formContato, nome: e.target.value})} 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white', outline: 'none', boxSizing: 'border-box' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', color: '#A0B2A6', fontWeight: 'bold' }}>Seu E-mail</label>
+                <input 
+                  required 
+                  type="email" 
+                  placeholder="Para onde enviamos a resposta?" 
+                  value={formContato.email} 
+                  onChange={(e) => setFormContato({...formContato, email: e.target.value})} 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white', outline: 'none', boxSizing: 'border-box' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', color: '#A0B2A6', fontWeight: 'bold' }}>Sua Mensagem</label>
+                <textarea 
+                  required 
+                  placeholder="Conte-nos um pouco sobre a sua necessidade..." 
+                  rows="4" 
+                  value={formContato.mensagem} 
+                  onChange={(e) => setFormContato({...formContato, mensagem: e.target.value})} 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                ></textarea>
+              </div>
+              <button type="submit" style={{ background: '#84E034', color: '#0A2518', padding: '15px 30px', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', marginTop: '10px', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseOver={(e) => e.target.style.transform = 'scale(1.03)'} onMouseOut={(e) => e.target.style.transform = 'scale(1)'}>
+                Enviar Mensagem
+              </button>
+            </form>
+          )}
+        </div>
       </section>
 
     </div>
