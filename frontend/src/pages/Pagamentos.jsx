@@ -6,6 +6,8 @@ import { CreditCard, DollarSign, Download, FileText, Plus, X, Check } from "luci
 import { jsPDF } from "jspdf"; 
 import "../styles/dashboard.css";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export default function Pagamentos() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
@@ -21,16 +23,19 @@ export default function Pagamentos() {
   });
 
   // DADOS TRANSFORMADOS EM ESTADO COM VALORES NUMÉRICOS REAIS
-  const [faturas, setFaturas] = useState([
-    { id: "FAT-2026-001", desc: "Assinatura AgriNexus PRO (Mensal)", data: "05/03/2026", valor: 149.90, status: "Pago" },
-    { id: "FAT-2026-002", desc: "Manutenção Sensores de Umidade", data: "15/03/2026", valor: 350.00, status: "Pago" },
-    { id: "FAT-2026-003", desc: "Assinatura AgriNexus PRO (Mensal)", data: "05/04/2026", valor: 149.90, status: "Em Aberto" }
-  ]);
+  const [faturas, setFaturas] = useState([]);
 
   useEffect(() => {
     const userLogado = localStorage.getItem("usuarioLogado");
     if (!userLogado) navigate("/login");
-    else setUsuario(JSON.parse(userLogado));
+    else {
+      const user = JSON.parse(userLogado);
+      setUsuario(user);
+      fetch(`${API_URL}/faturas/${user.id}`)
+        .then(res => res.json())
+        .then(data => setFaturas(data))
+        .catch(err => console.error("Erro ao buscar faturas:", err));
+    }
   }, [navigate]);
 
   // FUNÇÃO DE FORMATAR MOEDA BRASILEIRA
@@ -48,7 +53,7 @@ export default function Pagamentos() {
     .reduce((acc, curr) => acc + curr.valor, 0);
 
   // FUNÇÃO PARA ADICIONAR DESPESA
-  const salvarNovaDespesa = (e) => {
+  const salvarNovaDespesa = async (e) => {
     e.preventDefault();
     const idAleatorio = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     
@@ -63,17 +68,43 @@ export default function Pagamentos() {
       status: novaDespesa.status
     };
     
-    setFaturas([despesaParaSalvar, ...faturas]);
-    setNovaDespesa({ desc: "", data: "", valor: "", status: "Em Aberto" });
-    setModalAberto(false);
+    try {
+      const res = await fetch(`${API_URL}/faturas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fatura_id: despesaParaSalvar.id,
+          desc: despesaParaSalvar.desc,
+          data: despesaParaSalvar.data,
+          valor: despesaParaSalvar.valor,
+          status: despesaParaSalvar.status,
+          usuario_id: usuario.id
+        })
+      });
+      
+      if (res.ok) {
+        setFaturas([despesaParaSalvar, ...faturas]);
+        setNovaDespesa({ desc: "", data: "", valor: "", status: "Em Aberto" });
+        setModalAberto(false);
+      }
+    } catch (error) {
+      console.error("Erro ao salvar fatura:", error);
+    }
   };
 
   // FUNÇÃO PARA SIMULAR PAGAMENTO (Efeito Uau)
-  const pagarFatura = (id) => {
-    const faturasAtualizadas = faturas.map(f => 
-      f.id === id ? { ...f, status: "Pago" } : f
-    );
-    setFaturas(faturasAtualizadas);
+  const pagarFatura = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/faturas/${id}/pagar`, { method: 'PUT' });
+      if (res.ok) {
+        const faturasAtualizadas = faturas.map(f => 
+          f.id === id ? { ...f, status: "Pago" } : f
+        );
+        setFaturas(faturasAtualizadas);
+      }
+    } catch (error) {
+      console.error("Erro ao pagar fatura:", error);
+    }
   };
 
   // FUNÇÃO PARA GERAR RECIBO EM PDF DA LINHA ESPECÍFICA

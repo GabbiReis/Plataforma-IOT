@@ -104,6 +104,18 @@ class LeituraIoTModel(Base):
     firmware = Column(String(50), nullable=True)
     registrado_em = Column(DateTime(timezone=True), server_default=func.now())
 
+# Novo modelo para o Financeiro
+class Fatura(Base):
+    __tablename__ = "faturas"
+    id = Column(Integer, primary_key=True, index=True)
+    fatura_id = Column(String(50), unique=True, index=True)
+    desc = Column(String(200), nullable=False)
+    data = Column(String(20), nullable=False)
+    valor = Column(Float, nullable=False)
+    status = Column(String(20), default="Em Aberto")
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -152,6 +164,14 @@ class LeituraCreate(BaseModel):
 
 class MensagemChat(BaseModel):
     mensagem: str
+
+class FaturaCreate(BaseModel):
+    fatura_id: str
+    desc: str
+    data: str
+    valor: float
+    status: str
+    usuario_id: int
 
 # 1. Definindo o "Contrato de Dados" (O que a placa vai mandar)
 class LeituraIoT(BaseModel):
@@ -328,6 +348,7 @@ async def buscar_historico(db=Depends(get_db)):
             dados_grafico.append({
                 "temperatura": linha.temp_ar,
                 "umidade": linha.umidade_solo,
+                "luz": linha.luz,
                 "hora": f"#{linha.id}"
             })
         return dados_grafico
@@ -449,3 +470,31 @@ async def chat_agrinexus(req: MensagemChat):
         
     except Exception as e:
         return {"resposta": f"Erro interno na IA: {str(e)}"}
+
+@app.post("/faturas", tags=["Financeiro"])
+def criar_fatura(fatura: FaturaCreate, db=Depends(get_db)):
+    nova_fatura = Fatura(
+        fatura_id=fatura.fatura_id,
+        desc=fatura.desc,
+        data=fatura.data,
+        valor=fatura.valor,
+        status=fatura.status,
+        usuario_id=fatura.usuario_id
+    )
+    db.add(nova_fatura)
+    db.commit()
+    return {"mensagem": "Fatura registrada com sucesso"}
+
+@app.get("/faturas/{usuario_id}", tags=["Financeiro"])
+def listar_faturas(usuario_id: int, db=Depends(get_db)):
+    faturas = db.query(Fatura).filter(Fatura.usuario_id == usuario_id).order_by(Fatura.id.desc()).all()
+    return [{"id": f.fatura_id, "desc": f.desc, "data": f.data, "valor": f.valor, "status": f.status} for f in faturas]
+
+@app.put("/faturas/{fatura_id}/pagar", tags=["Financeiro"])
+def pagar_fatura(fatura_id: str, db=Depends(get_db)):
+    fatura = db.query(Fatura).filter(Fatura.fatura_id == fatura_id).first()
+    if not fatura:
+        raise HTTPException(status_code=404, detail="Fatura não encontrada")
+    fatura.status = "Pago"
+    db.commit()
+    return {"mensagem": "Fatura paga com sucesso"}

@@ -15,7 +15,7 @@ export default function Dashboard() {
   
   const [usuario, setUsuario] = useState(null);
   const [layoutInvertido, setLayoutInvertido] = useState(false);
-  const [metrica, setMetrica] = useState("producao");
+  const [metrica, setMetrica] = useState("umidade");
   const [dadosHistorico, setDadosHistorico] = useState([]);
   const [sincronizando, setSincronizando] = useState(false);
   const [dadosVitais, setDadosVitais] = useState({
@@ -118,23 +118,23 @@ export default function Dashboard() {
   const muitoQuente = dadosVitais.temperatura !== "--" && parseFloat(dadosVitais.temperatura) > limites.tempMax;
 
   const configsMetrica = {
-     producao: { labelAtual: "Produção Atual", labelAnterior: "Ano Anterior", corAtual: "#84E034", corAnterior: "#0A2518", unidade: "kg" },
-     umidade: { labelAtual: "Umidade Atual", labelAnterior: "Semana Passada", corAtual: "#3498db", corAnterior: "#dbeaf8", unidade: "%" },
-     temperatura: { labelAtual: "Temp. Atual", labelAnterior: "Semana Passada", corAtual: "#FF8C00", corAnterior: "#ffe0b2", unidade: "°C" }
+     umidade: { labelAtual: "Umidade Atual", labelAnterior: "Leitura Anterior", corAtual: "#3498db", corAnterior: "#dbeaf8", unidade: "%" },
+     temperatura: { labelAtual: "Temp. Atual", labelAnterior: "Leitura Anterior", corAtual: "#FF8C00", corAnterior: "#ffe0b2", unidade: "°C" },
+     luz: { labelAtual: "Luz Atual", labelAnterior: "Leitura Anterior", corAtual: "#f1c40f", corAnterior: "#fcf3cf", unidade: "lux" }
   };
   
   const ultimas7 = dadosHistorico.slice(-7);
 
   const dadosSemana = {
-    producao: [ { dia: 'Seg', atual: 45, anterior: 30, max: 100 }, { dia: 'Ter', atual: 52, anterior: 38, max: 100 }, { dia: 'Qua', atual: 48, anterior: 40, max: 100 }, { dia: 'Qui', atual: 61, anterior: 45, max: 100 }, { dia: 'Sex', atual: 75, anterior: 50, max: 100 }, { dia: 'Sáb', atual: 80, anterior: 55, max: 100 }, { dia: 'Dom', atual: 85, anterior: 60, max: 100 } ],
-    umidade: ultimas7.length > 0 ? ultimas7.map(d => ({ dia: d.hora, atual: d.umidade, anterior: Math.max(0, d.umidade - 5), max: 100 })) : [ { dia: 'Seg', atual: 60, anterior: 65, max: 100 }, { dia: 'Ter', atual: 55, anterior: 62, max: 100 }, { dia: 'Qua', atual: 50, anterior: 60, max: 100 }, { dia: 'Qui', atual: 48, anterior: 58, max: 100 }, { dia: 'Sex', atual: 45, anterior: 55, max: 100 }, { dia: 'Sáb', atual: 42, anterior: 50, max: 100 }, { dia: 'Dom', atual: 38, anterior: 45, max: 100 } ],
-    temperatura: ultimas7.length > 0 ? ultimas7.map(d => ({ dia: d.hora, atual: d.temperatura, anterior: Math.max(0, d.temperatura - 2), max: 50 })) : [ { dia: 'Seg', atual: 24, anterior: 22, max: 50 }, { dia: 'Ter', atual: 26, anterior: 23, max: 50 }, { dia: 'Qua', atual: 28, anterior: 25, max: 50 }, { dia: 'Qui', atual: 31, anterior: 26, max: 50 }, { dia: 'Sex', atual: 33, anterior: 28, max: 50 }, { dia: 'Sáb', atual: 34, anterior: 30, max: 50 }, { dia: 'Dom', atual: 35, anterior: 31, max: 50 } ]
+    umidade: ultimas7.length > 0 ? ultimas7.map(d => ({ dia: d.hora, atual: d.umidade, anterior: Math.max(0, d.umidade - 5), max: 100 })) : [ { dia: '#1', atual: 60, anterior: 55, max: 100 }, { dia: '#2', atual: 55, anterior: 50, max: 100 }, { dia: '#3', atual: 50, anterior: 45, max: 100 }, { dia: '#4', atual: 48, anterior: 43, max: 100 }, { dia: '#5', atual: 45, anterior: 40, max: 100 }, { dia: '#6', atual: 42, anterior: 37, max: 100 }, { dia: '#7', atual: 38, anterior: 33, max: 100 } ],
+    temperatura: ultimas7.length > 0 ? ultimas7.map(d => ({ dia: d.hora, atual: d.temperatura, anterior: Math.max(0, d.temperatura - 2), max: 50 })) : [ { dia: '#1', atual: 24, anterior: 22, max: 50 }, { dia: '#2', atual: 26, anterior: 24, max: 50 }, { dia: '#3', atual: 28, anterior: 26, max: 50 }, { dia: '#4', atual: 31, anterior: 29, max: 50 }, { dia: '#5', atual: 33, anterior: 31, max: 50 }, { dia: '#6', atual: 34, anterior: 32, max: 50 }, { dia: '#7', atual: 35, anterior: 33, max: 50 } ],
+    luz: ultimas7.length > 0 ? ultimas7.map(d => ({ dia: d.hora, atual: d.luz || 0, anterior: Math.max(0, (d.luz || 0) - 50), max: 4000 })) : [ { dia: '#1', atual: 800, anterior: 750, max: 4000 }, { dia: '#2', atual: 1200, anterior: 1100, max: 4000 }, { dia: '#3', atual: 1500, anterior: 1400, max: 4000 }, { dia: '#4', atual: 2100, anterior: 2000, max: 4000 }, { dia: '#5', atual: 2800, anterior: 2700, max: 4000 }, { dia: '#6', atual: 3600, anterior: 3500, max: 4000 }, { dia: '#7', atual: 3800, anterior: 3700, max: 4000 } ]
   };
 
   const dadosAnuais = {
-    producao: [ { name: "JAN", current: 800, last: 300 }, { name: "FEV", current: 1200, last: 600 }, { name: "MAR", current: 1500, last: 900 }, { name: "ABR", current: 2100, last: 1400 }, { name: "MAI", current: 2800, last: 1800 }, { name: "JUN", current: 3600, last: 2200 }, { name: "JUL", current: 3800, last: 2400 }, { name: "AGO", current: 3400, last: 2100 }, { name: "SET", current: 2600, last: 1700 }, { name: "OUT", current: 1900, last: 1200 }, { name: "NOV", current: 1300, last: 800 }, { name: "DEZ", current: 900, last: 400 } ],
-    umidade: dadosHistorico.length > 0 ? dadosHistorico.map(d => ({ name: d.hora, current: d.umidade, last: Math.max(0, d.umidade - 5) })) : [ { name: "JAN", current: 65, last: 60 }, { name: "FEV", current: 68, last: 62 }, { name: "MAR", current: 60, last: 58 }, { name: "ABR", current: 55, last: 50 }, { name: "MAI", current: 50, last: 48 }, { name: "JUN", current: 45, last: 42 }, { name: "JUL", current: 40, last: 38 }, { name: "AGO", current: 38, last: 35 }, { name: "SET", current: 42, last: 40 }, { name: "OUT", current: 50, last: 48 }, { name: "NOV", current: 58, last: 55 }, { name: "DEZ", current: 62, last: 58 } ],
-    temperatura: dadosHistorico.length > 0 ? dadosHistorico.map(d => ({ name: d.hora, current: d.temperatura, last: Math.max(0, d.temperatura - 2) })) : [ { name: "JAN", current: 28, last: 26 }, { name: "FEV", current: 29, last: 27 }, { name: "MAR", current: 27, last: 26 }, { name: "ABR", current: 25, last: 24 }, { name: "MAI", current: 22, last: 21 }, { name: "JUN", current: 20, last: 19 }, { name: "JUL", current: 19, last: 18 }, { name: "AGO", current: 21, last: 20 }, { name: "SET", current: 24, last: 22 }, { name: "OUT", current: 26, last: 24 }, { name: "NOV", current: 27, last: 25 }, { name: "DEZ", current: 28, last: 26 } ]
+    umidade: dadosHistorico.length > 0 ? dadosHistorico.map(d => ({ name: d.hora, current: d.umidade, last: Math.max(0, d.umidade - 5) })) : [ { name: "#01", current: 65, last: 60 }, { name: "#02", current: 68, last: 62 }, { name: "#03", current: 60, last: 58 }, { name: "#04", current: 55, last: 50 }, { name: "#05", current: 50, last: 48 }, { name: "#06", current: 45, last: 42 }, { name: "#07", current: 40, last: 38 }, { name: "#08", current: 38, last: 35 }, { name: "#09", current: 42, last: 40 }, { name: "#10", current: 50, last: 48 } ],
+    temperatura: dadosHistorico.length > 0 ? dadosHistorico.map(d => ({ name: d.hora, current: d.temperatura, last: Math.max(0, d.temperatura - 2) })) : [ { name: "#01", current: 28, last: 26 }, { name: "#02", current: 29, last: 27 }, { name: "#03", current: 27, last: 26 }, { name: "#04", current: 25, last: 24 }, { name: "#05", current: 22, last: 21 }, { name: "#06", current: 20, last: 19 }, { name: "#07", current: 19, last: 18 }, { name: "#08", current: 21, last: 20 }, { name: "#09", current: 24, last: 22 }, { name: "#10", current: 26, last: 24 } ],
+    luz: dadosHistorico.length > 0 ? dadosHistorico.map(d => ({ name: d.hora, current: d.luz || 0, last: Math.max(0, (d.luz || 0) - 50) })) : [ { name: "#01", current: 800, last: 700 }, { name: "#02", current: 1200, last: 1100 }, { name: "#03", current: 1500, last: 1400 }, { name: "#04", current: 2100, last: 2000 }, { name: "#05", current: 2800, last: 2600 }, { name: "#06", current: 3600, last: 3400 }, { name: "#07", current: 3800, last: 3600 }, { name: "#08", current: 3400, last: 3200 }, { name: "#09", current: 2600, last: 2500 }, { name: "#10", current: 1900, last: 1800 } ]
   };
 
   const configAtual = configsMetrica[metrica];
@@ -270,9 +270,9 @@ export default function Dashboard() {
                   onChange={(e) => setMetrica(e.target.value)} 
                   style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', outline: 'none', fontWeight: 'bold', color: '#0A2518', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}
                >
-                  <option value="producao">🌾 Medir Produção</option>
                   <option value="umidade">💧 Medir Umidade</option>
                   <option value="temperatura">🌡️ Medir Temperatura</option>
+                  <option value="luz">☀️ Medir Luminosidade</option>
                </select>
                <button 
                   onClick={() => setLayoutInvertido(!layoutInvertido)} 
@@ -289,8 +289,8 @@ export default function Dashboard() {
 
             <div className="dash-card growth-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, color: '#0A2518', fontSize: '16px' }}>Dias da Semana ({configAtual.unidade})</h3>
-                <span style={{ fontSize: '12px', color: '#666', fontWeight: 'bold', background: '#f5f5f5', padding: '4px 8px', borderRadius: '6px' }}>Últimos 7 dias</span>
+                <h3 style={{ margin: 0, color: '#0A2518', fontSize: '16px' }}>Últimos Registros ({configAtual.unidade})</h3>
+                <span style={{ fontSize: '12px', color: '#666', fontWeight: 'bold', background: '#f5f5f5', padding: '4px 8px', borderRadius: '6px' }}>7 leituras</span>
               </div>
 
               <div style={{ height: '200px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', borderBottom: '2px solid #f0f0f0', paddingBottom: '10px' }}>
@@ -323,7 +323,7 @@ export default function Dashboard() {
 
             <div className="dash-card production-card">
               <div className="card-header" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: '10px' }}>
-                <h3 style={{ margin: 0, color: '#0A2518', fontSize: '16px' }}>Resumo Mensal ({configAtual.unidade})</h3>
+                <h3 style={{ margin: 0, color: '#0A2518', fontSize: '16px' }}>Histórico Contínuo ({configAtual.unidade})</h3>
                 <div className="chart-legend" style={{ display: 'flex', gap: '16px', fontSize: '12px', fontWeight: '600', color: '#555' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: configAtual.corAtual, transition: 'background 0.5s' }}></div> 
