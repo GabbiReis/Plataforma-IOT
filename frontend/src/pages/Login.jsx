@@ -123,7 +123,7 @@ export default function Login() {
           </form>
 
           <div className="register-link">
-            Não tem uma conta? <Link to="/register">Registre-se agora</Link>
+            Não tem uma conta? <Link to="/register">Cadastre-se agora</Link>
           </div>
           
           <div className="login-footer">
