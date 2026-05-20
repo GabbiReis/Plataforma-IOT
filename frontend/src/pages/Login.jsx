@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
+import { Eye, EyeOff } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [lembrar, setLembrar] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const emailLembrado = localStorage.getItem('emailLembrado');
+    if (emailLembrado) {
+      setEmail(emailLembrado);
+      setLembrar(true);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,6 +46,12 @@ export default function Login() {
         setSucesso("Acesso liberado! Entrando no sistema...");
         
         localStorage.setItem("usuarioLogado", JSON.stringify(data.usuario));
+
+        if (lembrar) {
+          localStorage.setItem('emailLembrado', email);
+        } else {
+          localStorage.removeItem('emailLembrado');
+        }
         
         setTimeout(() => {
           navigate("/dashboard");
@@ -100,19 +117,28 @@ export default function Login() {
 
             <div className="input-group">
               <label htmlFor="password">Senha</label>
-              <input 
-                type="password" 
-                id="password" 
-                placeholder="Digite sua senha" 
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                required 
-              />
+              <div className="password-wrapper">
+                <input 
+                  type={mostrarSenha ? "text" : "password"} 
+                  id="password" 
+                  placeholder="Digite sua senha" 
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  required 
+                />
+                <div className="password-icon" onClick={() => setMostrarSenha(!mostrarSenha)}>
+                  {mostrarSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+                </div>
+              </div>
             </div>
 
             <div className="form-actions">
               <label className="remember-me">
-                <input type="checkbox" /> Lembrar de mim
+                <input 
+                  type="checkbox" 
+                  checked={lembrar}
+                  onChange={(e) => setLembrar(e.target.checked)}
+                /> Lembrar de mim
               </label>
               <Link to="/esqueci-senha" className="forgot-password">Esqueceu a senha?</Link>
             </div>
@@ -123,7 +149,7 @@ export default function Login() {
           </form>
 
           <div className="register-link">
-            Não tem uma conta? <Link to="/register">Cadastre-se agora</Link>
+            Não tem uma conta? <Link to="/register">Cadastre-se agora</Link> 
           </div>
           
           <div className="login-footer">

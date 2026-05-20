@@ -10,6 +10,20 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
 
   const [menuAberto, setMenuAberto] = useState(null); 
   const [dadosGlobais, setDadosGlobais] = useState(null);
+  
+  const [limites, setLimites] = useState(() => {
+    const salvos = localStorage.getItem("limitesAlertas");
+    return salvos ? JSON.parse(salvos) : { tempMax: 32, umidMin: 40 };
+  });
+
+  useEffect(() => {
+    const atualizarLimites = () => {
+      const salvos = localStorage.getItem("limitesAlertas");
+      if (salvos) setLimites(JSON.parse(salvos));
+    };
+    window.addEventListener("limitesAtualizados", atualizarLimites);
+    return () => window.removeEventListener("limitesAtualizados", atualizarLimites);
+  }, []);
 
   // Busca dados IoT automaticamente para as páginas que não possuem a prop "statusIot"
   useEffect(() => {
@@ -60,14 +74,14 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
     const bat = parseFloat(dadosAtuais.bateria);
     const sinal = parseFloat(dadosAtuais.wifi ?? dadosAtuais.rssi);
 
-    if (!isNaN(temp) && temp > 32) {
-      alertas.push({ id: 1, tipo: 'critico', titulo: '⚠️ Alerta de Temperatura', texto: `A estufa atingiu ${temp}°C. Risco de estresse térmico!` });
+    if (!isNaN(temp) && temp > limites.tempMax) {
+      alertas.push({ id: 1, tipo: 'critico', titulo: '⚠️ Alerta de Temperatura', texto: `A estufa atingiu ${temp}°C (Limite: ${limites.tempMax}°C). Risco de estresse térmico!` });
     }
     if (!isNaN(temp) && temp < 20) {
       alertas.push({ id: 2, tipo: 'aviso', titulo: '❄️ Temperatura Baixa', texto: `A temperatura caiu para ${temp}°C. Verifique o ambiente.` });
     }
-    if (!isNaN(umid) && umid < 40) {
-      alertas.push({ id: 3, tipo: 'critico', titulo: '💧 Umidade Crítica', texto: `O solo está muito seco (${umid}%). Irrigação imediata recomendada.` });
+    if (!isNaN(umid) && umid < limites.umidMin) {
+      alertas.push({ id: 3, tipo: 'critico', titulo: '💧 Umidade Crítica', texto: `O solo está muito seco (${umid}%). O mínimo ideal é ${limites.umidMin}%. Irrigação imediata recomendada.` });
     }
     if (!isNaN(bat) && bat <= 3.5) {
       alertas.push({ id: 4, tipo: 'aviso', titulo: '🔋 Bateria Fraca', texto: `A tensão do sensor caiu para ${bat}V. Recarregue a LILYGO em breve.` });

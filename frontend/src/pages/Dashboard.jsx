@@ -27,6 +27,20 @@ export default function Dashboard() {
     wifi: "--",
     atualizacao: "--"
   });
+  
+  const [limites, setLimites] = useState(() => {
+    const salvos = localStorage.getItem("limitesAlertas");
+    return salvos ? JSON.parse(salvos) : { tempMax: 32, umidMin: 40 };
+  });
+
+  useEffect(() => {
+    const atualizarLimites = () => {
+      const salvos = localStorage.getItem("limitesAlertas");
+      if (salvos) setLimites(JSON.parse(salvos));
+    };
+    window.addEventListener("limitesAtualizados", atualizarLimites);
+    return () => window.removeEventListener("limitesAtualizados", atualizarLimites);
+  }, []);
 
   useEffect(() => {
     const userLogado = localStorage.getItem("usuarioLogado");
@@ -100,8 +114,8 @@ export default function Dashboard() {
   }).format(dataAtual);
 
   // Lógica de Inteligência e Alertas (Fase 4 do TCC)
-  const soloSeco = dadosVitais.umidade !== "--" && parseFloat(dadosVitais.umidade) < 40;
-  const muitoQuente = dadosVitais.temperatura !== "--" && parseFloat(dadosVitais.temperatura) > 32;
+  const soloSeco = dadosVitais.umidade !== "--" && parseFloat(dadosVitais.umidade) < limites.umidMin;
+  const muitoQuente = dadosVitais.temperatura !== "--" && parseFloat(dadosVitais.temperatura) > limites.tempMax;
 
   const configsMetrica = {
      producao: { labelAtual: "Produção Atual", labelAnterior: "Ano Anterior", corAtual: "#84E034", corAnterior: "#0A2518", unidade: "kg" },

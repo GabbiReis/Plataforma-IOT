@@ -129,6 +129,13 @@ class UsuarioLogin(BaseModel):
     email: str
     senha: str
 
+class UsuarioUpdateSenha(BaseModel):
+    nova_senha: str
+
+class UsuarioUpdateDados(BaseModel):
+    nome_completo: str
+    email: str
+
 class EstufaCreate(BaseModel):
     nome: str
     localizacao: str
@@ -187,6 +194,32 @@ def login(usuario: UsuarioLogin, db=Depends(get_db)):
         "mensagem": "Login realizado com sucesso", 
         "usuario": {"id": user.id, "nome_completo": user.nome_completo, "email": user.email, "perfil": user.perfil}
     }
+
+@app.put("/usuarios/{usuario_id}/senha", tags=["Autenticação"])
+def atualizar_senha(usuario_id: int, dados: UsuarioUpdateSenha, db=Depends(get_db)):
+    user = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    user.senha_hash = get_password_hash(dados.nova_senha)
+    db.commit()
+    return {"mensagem": "Senha atualizada com sucesso"}
+
+@app.put("/usuarios/{usuario_id}/dados", tags=["Autenticação"])
+def atualizar_dados_usuario(usuario_id: int, dados: UsuarioUpdateDados, db=Depends(get_db)):
+    user = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if dados.email != user.email:
+        email_existente = db.query(Usuario).filter(Usuario.email == dados.email).first()
+        if email_existente:
+            raise HTTPException(status_code=400, detail="Este e-mail já está em uso por outra conta")
+            
+    user.nome_completo = dados.nome_completo
+    user.email = dados.email
+    db.commit()
+    return {"mensagem": "Dados atualizados com sucesso"}
 
 @app.post("/estufas", tags=["IoT - Gestão"])
 def criar_estufa(estufa: EstufaCreate, db=Depends(get_db)):

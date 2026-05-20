@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
-import { User, Bell, Shield, Cpu, Save, Wifi, PlusCircle, CheckCircle2, Activity } from "lucide-react";
+import { User, Bell, Shield, Cpu, Save, Wifi, PlusCircle, CheckCircle2, Activity, Eye, EyeOff } from "lucide-react";
 import "../styles/dashboard.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -14,6 +14,11 @@ export default function Configuracoes() {
   const [novoSensor, setNovoSensor] = useState({ nome: "", tipo: "", estufa_id: 1 });
   const [mensagemSensor, setMensagemSensor] = useState("");
   
+  const [senhaForm, setSenhaForm] = useState({ nova: "", confirmar: "" });
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
+  const [erroSenha, setErroSenha] = useState("");
+  
   const [salvando, setSalvando] = useState(false);
   const [mensagemSalvo, setMensagemSalvo] = useState(false);
 
@@ -22,7 +27,10 @@ export default function Configuracoes() {
     { id: "SENS-002", nome: "Sensor DHT22 (Teto)", tipo: "Temperatura Ar", estufa: 1, status: "Online" }
   ]);
 
-  const [limites, setLimites] = useState({ tempMax: 35, umidMin: 40, nitro: 20 });
+  const [limites, setLimites] = useState(() => {
+    const salvos = localStorage.getItem("limitesAlertas");
+    return salvos ? JSON.parse(salvos) : { tempMax: 32, umidMin: 40, nitro: 20 };
+  });
   const [notificacoes, setNotificacoes] = useState({ email: true, ia: true, faturas: false });
 
   useEffect(() => {
@@ -34,15 +42,70 @@ export default function Configuracoes() {
     }
   }, [navigate]);
 
-  const handleSalvarConfiguracoes = () => {
+  const handleSalvarConfiguracoes = async () => {
+    setErroSenha("");
+    
+    // Validação da senha se o usuário preencheu algum dos campos
+    if (senhaForm.nova || senhaForm.confirmar) {
+      if (senhaForm.nova !== senhaForm.confirmar) {
+        setErroSenha("❌ As senhas não coincidem!");
+        return;
+      }
+      if (senhaForm.nova.length < 8) {
+        setErroSenha("❌ A senha deve ter pelo menos 8 caracteres.");
+        return;
+      }
+    }
+
     setSalvando(true);
     
-    setTimeout(() => {
+    try {
+      // Se tiver senha pra atualizar, chama a API Python
+      if (senhaForm.nova && usuario.id) {
+        const res = await fetch(`${API_URL}/usuarios/${usuario.id}/senha`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nova_senha: senhaForm.nova })
+        });
+        if (!res.ok) throw new Error("Falha ao atualizar senha no servidor");
+        setSenhaForm({ nova: "", confirmar: "" }); // Limpa os campos se deu certo
+      }
+
+      // Atualiza os dados pessoais (nome e e-mail) no backend
+      if (usuario.id) {
+        const resDados = await fetch(`${API_URL}/usuarios/${usuario.id}/dados`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nome_completo: usuario.nome_completo,
+            email: usuario.email
+          })
+        });
+        if (!resDados.ok) {
+          const erroData = await resDados.json();
+          throw new Error(erroData.detail || "Falha ao atualizar dados pessoais no servidor");
+        }
+      }
+
+      // Atualiza os dados do usuário no localStorage caso tenha mudado nome/email
+      const usuarioStorage = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+      usuarioStorage.nome_completo = usuario.nome_completo;
+      usuarioStorage.email = usuario.email;
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioStorage));
+      window.dispatchEvent(new Event("storage"));
+
+      // Salva os novos limites e emite um aviso para atualizar os alertas na hora
+      localStorage.setItem("limitesAlertas", JSON.stringify(limites));
+      window.dispatchEvent(new Event("limitesAtualizados"));
+
       setSalvando(false);
       setMensagemSalvo(true);
       
       setTimeout(() => setMensagemSalvo(false), 3000);
-    }, 1200);
+    } catch (error) {
+      setErroSenha("❌ " + error.message);
+      setSalvando(false);
+    }
   };
 
 
@@ -148,16 +211,16 @@ export default function Configuracoes() {
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '14px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>Temp. Máx (°C)</label>
-                    <input type="number" value={limites.tempMax} onChange={(e) => setLimites({...limites, tempMax: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                    <input type="number" value={limites.tempMax} onChange={(e) => setLimites({...limites, tempMax: Number(e.target.value)})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '14px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>Umid. Mín (%)</label>
-                    <input type="number" value={limites.umidMin} onChange={(e) => setLimites({...limites, umidMin: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                    <input type="number" value={limites.umidMin} onChange={(e) => setLimites({...limites, umidMin: Number(e.target.value)})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
                   </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '14px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>Nível Crítico Nitrogênio (mg/kg)</label>
-                  <input type="number" value={limites.nitro} onChange={(e) => setLimites({...limites, nitro: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                  <input type="number" value={limites.nitro} onChange={(e) => setLimites({...limites, nitro: Number(e.target.value)})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
                 </div>
               </div>
             </div>
@@ -189,13 +252,30 @@ export default function Configuracoes() {
                 <Shield size={20} color="#84E034" /> Segurança
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            {erroSenha && (
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#D32F2F', background: '#FDEDED', padding: '10px', borderRadius: '8px' }}>
+                {erroSenha}
+              </div>
+            )}
+            
                 <div>
                   <label style={{ display: 'block', fontSize: '14px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>Nova Senha</label>
-                  <input type="password" placeholder="••••••••" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input type={mostrarSenha ? "text" : "password"} value={senhaForm.nova} onChange={(e) => setSenhaForm({...senhaForm, nova: e.target.value})} placeholder="••••••••" style={{ width: '100%', padding: '12px', paddingRight: '45px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                <div onClick={() => setMostrarSenha(!mostrarSenha)} style={{ position: 'absolute', right: '15px', cursor: 'pointer', color: '#999', display: 'flex' }}>
+                  {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                </div>
+              </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '14px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>Confirmar Nova Senha</label>
-                  <input type="password" placeholder="••••••••" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input type={mostrarConfirmarSenha ? "text" : "password"} value={senhaForm.confirmar} onChange={(e) => setSenhaForm({...senhaForm, confirmar: e.target.value})} placeholder="••••••••" style={{ width: '100%', padding: '12px', paddingRight: '45px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                <div onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)} style={{ position: 'absolute', right: '15px', cursor: 'pointer', color: '#999', display: 'flex' }}>
+                  {mostrarConfirmarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                </div>
+              </div>
                 </div>
               </div>
             </div>

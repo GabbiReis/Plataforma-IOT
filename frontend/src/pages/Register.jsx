@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css"; 
+import { Eye, EyeOff } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -9,6 +10,8 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
@@ -148,26 +151,36 @@ export default function Register() {
 
             <div className="input-group">
               <label htmlFor="password">Senha</label>
-              <input 
-                type="password" 
-                id="password" 
-                placeholder="Crie uma senha" 
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                required 
-              />
+              <div className="password-wrapper">
+                <input 
+                  type={mostrarSenha ? "text" : "password"} 
+                  id="password" 
+                  placeholder="Crie uma senha" 
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  required 
+                />
+                <div className="password-icon" onClick={() => setMostrarSenha(!mostrarSenha)}>
+                  {mostrarSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+                </div>
+              </div>
             </div>
 
             <div className="input-group">
               <label htmlFor="confirm-password">Confirmar Senha</label>
-              <input 
-                type="password" 
-                id="confirm-password" 
-                placeholder="Repita a senha" 
-                value={confirmarSenha}
-                onChange={(e) => setConfirmarSenha(e.target.value)}
-                required 
-              />
+              <div className="password-wrapper">
+                <input 
+                  type={mostrarConfirmarSenha ? "text" : "password"} 
+                  id="confirm-password" 
+                  placeholder="Repita a senha" 
+                  value={confirmarSenha}
+                  onChange={(e) => setConfirmarSenha(e.target.value)}
+                  required 
+                />
+                <div className="password-icon" onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}>
+                  {mostrarConfirmarSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+                </div>
+              </div>
             </div>
 
             <button type="submit" className="btn-login" style={{ width: "100%" }}>
