@@ -50,11 +50,20 @@ export default function Analises() {
       setCarregandoIA(true);
       try {
         const resIA = await fetch(`${API_URL}/analises/dica-ia`);
+        
+        if (!resIA.ok) {
+          if (resIA.status === 429) {
+             setDicaIA("A Inteligência Artificial está temporariamente indisponível (limite de requisições gratuito atingido). Tente novamente daqui a pouco.");
+             return;
+          }
+          throw new Error(`Erro na API HTTP: ${resIA.status}`);
+        }
+
         const dataIA = await resIA.json();
         if(dataIA.dica) setDicaIA(dataIA.dica);
       } catch (error) {
         console.error("Erro ao carregar IA:", error);
-        setDicaIA("IA em modo de espera. Monitorando novos padrões climáticos na estufa.");
+        setDicaIA("Falha na comunicação com a IA. Modo de espera ativado monitorando novos padrões climáticos na estufa.");
       } finally {
         setCarregandoIA(false);
       }

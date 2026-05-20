@@ -53,6 +53,14 @@ export default function ChatbotWidget() {
         body: JSON.stringify({ mensagem: novaMensagemUsuario.texto })
       });
 
+      if (!resposta.ok) {
+        if (resposta.status === 429) {
+          throw new Error("Limite da IA excedido.");
+        } else {
+          throw new Error("Erro no servidor");
+        }
+      }
+
       const dados = await resposta.json();
 
       setHistorico((prev) => 
@@ -60,10 +68,11 @@ export default function ChatbotWidget() {
       );
 
     } catch (erro) {
+      const mensagemErro = erro.message.includes("Limite") ? "⚠️ O limite de uso gratuito da IA foi atingido. Por favor, aguarde cerca de 1 minuto." : "❌ Desculpe, não consegui conectar aos servidores da AgriNexus. Verifique se a API Python está rodando.";
       setHistorico((prev) => 
         prev.filter(msg => msg.id !== idDigitando).concat({ 
           autor: "bot", 
-          texto: "❌ Desculpe, não consegui conectar aos servidores da AgriNexus. Verifique se a API Python está rodando." 
+          texto: mensagemErro 
         })
       );
     }
