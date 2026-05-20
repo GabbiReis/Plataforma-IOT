@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [layoutInvertido, setLayoutInvertido] = useState(false);
   const [metrica, setMetrica] = useState("producao");
   const [dadosHistorico, setDadosHistorico] = useState([]);
+  const [sincronizando, setSincronizando] = useState(false);
   const [dadosVitais, setDadosVitais] = useState({
     temperatura: "--",
     umidade: "--",
@@ -54,6 +55,7 @@ export default function Dashboard() {
     if (!usuario) return;
 
     const buscarDadosVitais = async () => {
+      setSincronizando(true);
       try {
         const resposta = await fetch(`${API_URL}/api/leituras/ultima`);
         const dadosReais = await resposta.json();
@@ -75,6 +77,8 @@ export default function Dashboard() {
 
       } catch (error) {
         console.error("Erro ao buscar dados reais da placa:", error);
+      } finally {
+        setSincronizando(false);
       }
     };
 
@@ -137,7 +141,7 @@ export default function Dashboard() {
               <p style={{ margin: '5px 0 0 0', color: '#666' }}>Acompanhe os dados da sua estufa em tempo real</p>
             </div>
             <div style={{ fontSize: '13px', color: '#666', background: 'white', padding: '8px 16px', borderRadius: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <RefreshCcw size={16} color={dadosVitais.atualizacao !== "--" ? "#84E034" : "#ccc"} /> 
+              <RefreshCcw size={16} color={dadosVitais.atualizacao !== "--" ? "#84E034" : "#ccc"} className={sincronizando ? "spin-animation" : ""} /> 
               <b>Última Sincronização:</b> {dadosVitais.atualizacao}
             </div>
           </div>

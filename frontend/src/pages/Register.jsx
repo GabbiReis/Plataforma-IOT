@@ -87,8 +87,8 @@ export default function Register() {
             Voltar para o Login
           </Link>
 
-          <h1 className="login-title">Criar Conta</h1>
-          <p className="login-subtitle">Preencha os dados abaixo para se registrar no sistema.</p>
+          <h1 className="login-title">Cadastre-se</h1>
+          <p className="login-subtitle">Preencha os dados abaixo para criar sua conta no sistema.</p>
 
           {erro && (
             <div style={{ 
@@ -171,12 +171,12 @@ export default function Register() {
             </div>
 
             <button type="submit" className="btn-login" style={{ width: "100%" }}>
-              REGISTRAR
+              CADASTRAR
             </button>
           </form>
 
           <div className="register-link">
-            Já tem uma conta? <Link to="/login">Iniciar sessão</Link>
+            Já tem uma conta? <Link to="/login">Fazer login</Link>
           </div>
           
           <div className="login-footer">
