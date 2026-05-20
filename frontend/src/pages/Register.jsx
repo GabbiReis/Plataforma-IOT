@@ -72,7 +72,6 @@ export default function Register() {
       <div className="login-image-side">
         <div className="login-image-overlay">
           <div className="login-branding">
-            <span className="logo-icon">🌿</span>
             <h2>AgriNexus</h2>
             <p>Junte-se a nós e transforme o futuro da agricultura com tecnologia de ponta.</p>
           </div>
