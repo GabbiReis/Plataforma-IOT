@@ -60,7 +60,13 @@ export default function Analises() {
         }
 
         const dataIA = await resIA.json();
-        if(dataIA.dica) setDicaIA(dataIA.dica);
+        if (dataIA.dica) {
+          if (typeof dataIA.dica === 'string' && (dataIA.dica.includes("429 RESOURCE_EXHAUSTED") || dataIA.dica.includes("Quota exceeded"))) {
+            setDicaIA("A Inteligência Artificial está temporariamente indisponível (limite de requisições gratuito atingido). Tente novamente daqui a pouco.");
+          } else {
+            setDicaIA(dataIA.dica);
+          }
+        }
       } catch (error) {
         console.error("Erro ao carregar IA:", error);
         setDicaIA("Falha na comunicação com a IA. Modo de espera ativado monitorando novos padrões climáticos na estufa.");

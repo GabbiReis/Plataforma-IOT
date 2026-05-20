@@ -62,6 +62,10 @@ export default function ChatbotWidget() {
       }
 
       const dados = await resposta.json();
+      
+      if (dados.resposta && typeof dados.resposta === 'string' && (dados.resposta.includes("429 RESOURCE_EXHAUSTED") || dados.resposta.includes("Quota exceeded"))) {
+        throw new Error("Limite da IA excedido.");
+      }
 
       setHistorico((prev) => 
         prev.filter(msg => msg.id !== idDigitando).concat({ autor: "bot", texto: dados.resposta })
