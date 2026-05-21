@@ -1,15 +1,18 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
-from passlib.context import CryptContext
+import bcrypt
 import json
 import os
 import time
+import jwt
+from datetime import datetime, timedelta, timezone
 import psycopg2
 from google import genai
 from dotenv import load_dotenv
@@ -17,13 +20,21 @@ from dotenv import load_dotenv
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    # Gera o hash usando a biblioteca bcrypt diretamente
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        return False
+
+# Configurações do JWT (OAuth2)
+SECRET_KEY = os.getenv("SECRET_KEY", "agrinexus_chave_super_secreta_tcc_2026")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 120 # O token expira em 2 horas
 
 app = FastAPI(title="AgriNexus API", description="Backend Completo - Autenticação e IoT", version="1.1.0")
 
@@ -133,6 +144,41 @@ if GEMINI_API_KEY:
     # Inicializa o cliente seguindo a nova documentação da google-genai
     client_ia = genai.Client(api_key=GEMINI_API_KEY)
 
+# Função que cria o Token JWT
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+# 1. Instância do esquema de segurança OAuth2
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+# 2. Dependência Central de Segurança para bloquear acessos indevidos
+def get_usuario_atual(token: str = Depends(oauth2_scheme), db = Depends(get_db)):
+    credenciais_exception = HTTPException(
+        status_code=401,
+        detail="Não foi possível validar as credenciais. Faça login novamente.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credenciais_exception
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expirado", headers={"WWW-Authenticate": "Bearer"})
+    except jwt.InvalidTokenError:
+        raise credenciais_exception
+        
+    user = db.query(Usuario).filter(Usuario.email == email).first()
+    if user is None:
+        raise credenciais_exception
+    return user
+
 class UsuarioCreate(BaseModel):
     nome_completo: str
     email: str
@@ -211,13 +257,21 @@ def login(usuario: UsuarioLogin, db=Depends(get_db)):
     if not user.ativo:
         raise HTTPException(status_code=403, detail="Usuário inativo")
 
+    # Gera o token de acesso (OAuth2)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={"sub": user.email, "id": user.id}, expires_delta=access_token_expires)
+
     return {
-        "mensagem": "Login realizado com sucesso", 
-        "usuario": {"id": user.id, "nome_completo": user.nome_completo, "email": user.email, "perfil": user.perfil}
+        "access_token": access_token,
+        "token_type": "bearer",
+        "usuario": {"id": user.id, "nome_completo": user.nome_completo, "email": user.email, "perfil": user.perfil},
+        "mensagem": "Login realizado com sucesso"
     }
 
 @app.put("/usuarios/{usuario_id}/senha", tags=["Autenticação"])
-def atualizar_senha(usuario_id: int, dados: UsuarioUpdateSenha, db=Depends(get_db)):
+def atualizar_senha(usuario_id: int, dados: UsuarioUpdateSenha, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    if usuario_atual.id != usuario_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para alterar a senha de outro usuário")
     user = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -227,7 +281,9 @@ def atualizar_senha(usuario_id: int, dados: UsuarioUpdateSenha, db=Depends(get_d
     return {"mensagem": "Senha atualizada com sucesso"}
 
 @app.put("/usuarios/{usuario_id}/dados", tags=["Autenticação"])
-def atualizar_dados_usuario(usuario_id: int, dados: UsuarioUpdateDados, db=Depends(get_db)):
+def atualizar_dados_usuario(usuario_id: int, dados: UsuarioUpdateDados, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    if usuario_atual.id != usuario_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para alterar dados de outro usuário")
     user = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -317,7 +373,7 @@ async def receber_leitura(leitura: LeituraIoT, x_api_key: str = Header(None), db
         raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco: {str(e)}")
 
 @app.get("/api/leituras/ultima", tags=["IoT - Placa Física"])
-async def buscar_ultima_leitura(db=Depends(get_db)):
+async def buscar_ultima_leitura(db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
     try:
         resultado = db.query(LeituraIoTModel).order_by(LeituraIoTModel.id.desc()).first()
 
@@ -338,7 +394,7 @@ async def buscar_ultima_leitura(db=Depends(get_db)):
         return {"erro": f"Falha ao buscar no banco: {str(e)}"}
 
 @app.get("/api/leituras/historico", tags=["IoT - Placa Física"])
-async def buscar_historico(db=Depends(get_db)):
+async def buscar_historico(db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
     try:
         # Busca as 10 últimas leituras, ordenadas pela mais recente primeiro
         resultados = db.query(LeituraIoTModel).order_by(LeituraIoTModel.id.desc()).limit(10).all()
@@ -485,7 +541,7 @@ async def chat_agrinexus(req: MensagemChat):
         return {"resposta": f"Erro interno na IA: {str(e)}"}
 
 @app.post("/faturas", tags=["Financeiro"])
-def criar_fatura(fatura: FaturaCreate, db=Depends(get_db)):
+def criar_fatura(fatura: FaturaCreate, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
     nova_fatura = Fatura(
         fatura_id=fatura.fatura_id,
         desc=fatura.desc,
@@ -499,12 +555,14 @@ def criar_fatura(fatura: FaturaCreate, db=Depends(get_db)):
     return {"mensagem": "Fatura registrada com sucesso"}
 
 @app.get("/faturas/{usuario_id}", tags=["Financeiro"])
-def listar_faturas(usuario_id: int, db=Depends(get_db)):
+def listar_faturas(usuario_id: int, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    if usuario_atual.id != usuario_id:
+        raise HTTPException(status_code=403, detail="Acesso negado às faturas de outro usuário")
     faturas = db.query(Fatura).filter(Fatura.usuario_id == usuario_id).order_by(Fatura.id.desc()).all()
     return [{"id": f.fatura_id, "desc": f.desc, "data": f.data, "valor": f.valor, "status": f.status} for f in faturas]
 
 @app.put("/faturas/{fatura_id}/pagar", tags=["Financeiro"])
-def pagar_fatura(fatura_id: str, db=Depends(get_db)):
+def pagar_fatura(fatura_id: str, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
     fatura = db.query(Fatura).filter(Fatura.fatura_id == fatura_id).first()
     if not fatura:
         raise HTTPException(status_code=404, detail="Fatura não encontrada")

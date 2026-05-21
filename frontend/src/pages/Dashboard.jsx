@@ -70,8 +70,23 @@ export default function Dashboard() {
 
     const buscarDadosVitais = async () => {
       setSincronizando(true);
+      const token = localStorage.getItem("token");
+      
       try {
-        const resposta = await fetch(`${API_URL}/api/leituras/ultima`);
+        const resposta = await fetch(`${API_URL}/api/leituras/ultima`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        // Se o token estiver inválido ou expirado (Erro 401 do FastAPI)
+        if (resposta.status === 401) {
+          localStorage.removeItem("usuarioLogado");
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
+
         const dadosReais = await resposta.json();
         
         setDadosVitais({
@@ -85,7 +100,11 @@ export default function Dashboard() {
         });
 
         // Busca o histórico real do banco para desenhar nos gráficos interativos
-        const resHist = await fetch(`${API_URL}/api/leituras/historico`);
+        const resHist = await fetch(`${API_URL}/api/leituras/historico`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
         const histData = await resHist.json();
         setDadosHistorico(histData);
 
