@@ -9,6 +9,7 @@ from sqlalchemy.sql import func
 from passlib.context import CryptContext
 import json
 import os
+import time
 import psycopg2
 from google import genai
 from dotenv import load_dotenv
@@ -370,9 +371,18 @@ def obter_historico(sensor_id: int, db=Depends(get_db)):
     leituras = db.query(Leitura).filter(Leitura.sensor_id == sensor_id).order_by(Leitura.registrado_em.desc()).limit(20).all()
     return list(reversed(leituras))
 
+# Memória temporária (cache) para não esgotar a cota do Gemini
+cache_dica_ia = {"texto": "", "tempo": 0}
+
 @app.get("/analises/dica-ia", tags=["Análises"])
 def obter_dica_ia(db=Depends(get_db)):
     """Rota turbinada que usa o Gemini para analisar o status geral da estufa e sensores IoT."""
+    global cache_dica_ia
+    
+    # Se a IA já gerou uma dica há menos de 10 minutos (600 segundos), devolvemos o cache
+    # Isso impede que o React esgote as cotas do Google ao recarregar a página
+    if time.time() - cache_dica_ia["tempo"] < 600 and cache_dica_ia["tempo"] != 0:
+        return {"dica": cache_dica_ia["texto"]}
     
     # Busca as últimas leituras manuais/simuladas de qualquer sensor na estufa
     leituras_recentes = db.query(Leitura).order_by(Leitura.registrado_em.desc()).limit(20).all()
@@ -441,7 +451,10 @@ def obter_dica_ia(db=Depends(get_db)):
     """
 
     try:
-        resposta = client_ia.models.generate_content(model='gemini-2.0-flash', contents=prompt)
+        resposta = client_ia.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+        # Atualiza a memória com a nova resposta e o horário atual
+        cache_dica_ia["texto"] = resposta.text
+        cache_dica_ia["tempo"] = time.time()
         return {"dica": resposta.text}
     except Exception as e:
         print(f"ERRO FATAL NA IA: {str(e)}")
@@ -463,7 +476,7 @@ async def chat_agrinexus(req: MensagemChat):
         prompt_final = contexto_do_sistema + req.mensagem
         
         # Pede a resposta pro Gemini (usando o client_ia já configurado)
-        resposta_ia = client_ia.models.generate_content(model='gemini-2.0-flash', contents=prompt_final)
+        resposta_ia = client_ia.models.generate_content(model='gemini-2.5-flash', contents=prompt_final)
         
         # Devolve pro React
         return {"resposta": resposta_ia.text}
