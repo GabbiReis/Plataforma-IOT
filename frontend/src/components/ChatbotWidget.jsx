@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { MessageSquare, X, Send, Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -13,6 +14,7 @@ export default function ChatbotWidget() {
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false); // Novo estado para controlar o login
   
   const fimDoChatRef = useRef(null);
+  const location = useLocation();
 
   // Efeito para verificar o status de login do localStorage
   useEffect(() => {
@@ -82,8 +84,11 @@ export default function ChatbotWidget() {
     }
   };
 
-  // TRAVA DE SEGURANÇA: Só mostra o chat se o usuário estiver logado (usando o novo estado)
-  if (!isUserLoggedIn) return null;
+  // TRAVA DE SEGURANÇA DUPLA: 
+  // 1. Só mostra se o usuário estiver logado no localStorage
+  // 2. Esconde o chat forçadamente se estiver nas telas públicas
+  const rotasPublicas = ["/", "/login", "/register", "/cadastro", "/esqueci-senha"];
+  if (!isUserLoggedIn || rotasPublicas.includes(location.pathname)) return null;
 
   return (
     <div style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 9999 }}>

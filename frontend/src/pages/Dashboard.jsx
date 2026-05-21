@@ -83,6 +83,7 @@ export default function Dashboard() {
         if (resposta.status === 401) {
           localStorage.removeItem("usuarioLogado");
           localStorage.removeItem("token");
+          window.dispatchEvent(new Event("storage"));
           navigate("/login");
           return;
         }
