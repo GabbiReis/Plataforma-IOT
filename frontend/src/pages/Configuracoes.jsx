@@ -63,13 +63,19 @@ export default function Configuracoes() {
     setSalvando(true);
     
     try {
+      const token = localStorage.getItem("token");
+
       // Se tiver senha pra atualizar, chama a API Python
       if (senhaForm.nova && usuario.id) {
         const res = await fetch(`${API_URL}/usuarios/${usuario.id}/senha`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ nova_senha: senhaForm.nova })
         });
+        if (res.status === 401) throw new Error("Sessão expirada. Faça login novamente.");
         if (!res.ok) throw new Error("Falha ao atualizar senha no servidor");
         setSenhaForm({ nova: "", confirmar: "" }); // Limpa os campos se deu certo
       }
@@ -78,7 +84,10 @@ export default function Configuracoes() {
       if (usuario.id) {
         const resDados = await fetch(`${API_URL}/usuarios/${usuario.id}/dados`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             nome_completo: usuario.nome_completo,
             email: usuario.email

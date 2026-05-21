@@ -25,9 +25,14 @@ export default function Analises() {
   useEffect(() => {
     const buscarGrafico = async () => {
       try {
-        const resGrafico = await fetch(`${API_URL}/api/leituras/historico`);
+        const token = localStorage.getItem("token");
+        const resGrafico = await fetch(`${API_URL}/api/leituras/historico`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         const dataGrafico = await resGrafico.json();
         
+        if (!Array.isArray(dataGrafico)) return;
+
         const dadosFormatados = dataGrafico.map((leitura) => ({
           tempo: leitura.hora,
           temperatura: leitura.temperatura,
@@ -85,7 +90,10 @@ export default function Analises() {
 
     const buscarDadosVitais = async () => {
       try {
-        const resposta = await fetch(`${API_URL}/api/leituras/ultima`);
+        const token = localStorage.getItem("token");
+        const resposta = await fetch(`${API_URL}/api/leituras/ultima`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         const dadosReais = await resposta.json();
         
         setDadosVitais({

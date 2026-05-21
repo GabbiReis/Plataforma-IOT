@@ -32,8 +32,11 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
 
   // BUSCA DADOS REAIS DE OUTROS MÓDULOS PARA O SININHO
   useEffect(() => {
+    const token = localStorage.getItem("token");
     if (usuario?.id) {
-      fetch(`${API_URL}/faturas/${usuario.id}`)
+      fetch(`${API_URL}/faturas/${usuario.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setFaturasPendentes(data.filter(f => f.status === 'Em Aberto').length); })
         .catch(() => {});
@@ -50,8 +53,11 @@ export default function Topbar({ usuario, onSearch, statusIot }) {
 
   // Busca dados IoT automaticamente para as páginas que não possuem a prop "statusIot"
   useEffect(() => {
+    const token = localStorage.getItem("token");
     if (!statusIot) {
-      fetch(`${API_URL}/api/leituras/ultima`)
+      fetch(`${API_URL}/api/leituras/ultima`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
         .then(res => res.json())
         .then(data => {
           setDadosGlobais({

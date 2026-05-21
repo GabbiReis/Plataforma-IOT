@@ -27,13 +27,22 @@ export default function Pagamentos() {
 
   useEffect(() => {
     const userLogado = localStorage.getItem("usuarioLogado");
-    if (!userLogado) navigate("/login");
+    const token = localStorage.getItem("token");
+    
+    if (!userLogado || !token) navigate("/login");
     else {
       const user = JSON.parse(userLogado);
       setUsuario(user);
-      fetch(`${API_URL}/faturas/${user.id}`)
-        .then(res => res.json())
-        .then(data => setFaturas(data))
+      fetch(`${API_URL}/faturas/${user.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => {
+          if (res.status === 401) throw new Error("Sessão expirada");
+          return res.json();
+        })
+        .then(data => {
+          if (Array.isArray(data)) setFaturas(data);
+        })
         .catch(err => console.error("Erro ao buscar faturas:", err));
     }
   }, [navigate]);
@@ -69,9 +78,13 @@ export default function Pagamentos() {
     };
     
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`${API_URL}/faturas`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           fatura_id: despesaParaSalvar.id,
           desc: despesaParaSalvar.desc,
@@ -95,7 +108,11 @@ export default function Pagamentos() {
   // FUNÇÃO PARA SIMULAR PAGAMENTO (Efeito Uau)
   const pagarFatura = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/faturas/${id}/pagar`, { method: 'PUT' });
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/faturas/${id}/pagar`, { 
+        method: 'PUT',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       if (res.ok) {
         const faturasAtualizadas = faturas.map(f => 
           f.id === id ? { ...f, status: "Pago" } : f
