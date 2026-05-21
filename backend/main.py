@@ -517,13 +517,30 @@ def obter_dica_ia(db=Depends(get_db)):
         return {"dica": f"ERRO DO GOOGLE: {str(e)}"}
 
 @app.post("/chat", tags=["IA Chatbot"])
-async def chat_agrinexus(req: MensagemChat):
+async def chat_agrinexus(req: MensagemChat, db=Depends(get_db)):
+    
+    # 1. Busca a última leitura real dos sensores da estufa
+    ultima_leitura = db.query(LeituraIoTModel).order_by(LeituraIoTModel.registrado_em.desc()).first()
+    
+    dados_estufa = "Nenhum dado recente encontrado no banco de dados."
+    if ultima_leitura:
+        dados_estufa = f"""
+        Temperatura Atual: {ultima_leitura.temp_ar}°C
+        Umidade do Solo: {ultima_leitura.umidade_solo}%
+        Luminosidade: {ultima_leitura.luz} lux
+        Bateria do Sensor IoT: {ultima_leitura.bateria}V
+        """
     
     # O SEGREDO DO TCC: Dar uma "personalidade" para o Gemini!
-    contexto_do_sistema = """
+    contexto_do_sistema = f"""
     Você é a inteligência artificial do sistema AgriNexus, um software de agricultura de precisão.
     Sua missão é ajudar os agricultores a tomarem decisões baseadas em IoT.
     Seja claro, profissional e direto. Use emojis relacionados à agricultura.
+    
+    DADOS REAIS DA ESTUFA NO MOMENTO EXATO DESTA CONVERSA:
+    {dados_estufa}
+    
+    Baseie suas respostas nesses dados reais sempre que o usuário perguntar sobre o estado atual.
     A pergunta do agricultor é: 
     """
     
