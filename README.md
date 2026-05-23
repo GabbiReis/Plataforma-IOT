@@ -55,6 +55,6 @@ Como propostas de melhoria contínua para futuras iterações deste projeto, sug
 ---
 
 ## 🎓 Autoria
-*   **Desenvolvedor:** [Gabriela Reis]
+*   **Desenvolvedora:** [Gabriela Reis]
 *   **Orientador(a):** [Ricardo Fugencio]
 *   **Instituição:** [Uniaraxá] - 2026
