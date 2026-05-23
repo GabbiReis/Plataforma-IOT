@@ -5,7 +5,7 @@ import Topbar from "../components/Topbar";
 import { User, Bell, Shield, Cpu, Save, Wifi, PlusCircle, CheckCircle2, Activity, Eye, EyeOff } from "lucide-react";
 import "../styles/dashboard.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
 
 export default function Configuracoes() {
   const navigate = useNavigate();

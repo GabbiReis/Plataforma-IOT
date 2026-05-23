@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { MessageSquare, X, Send, Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
 
 export default function ChatbotWidget() {
   const [aberto, setAberto] = useState(false);

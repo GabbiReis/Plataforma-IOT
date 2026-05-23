@@ -7,6 +7,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import "../styles/dashboard.css";
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
+
 export default function Colheita() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
@@ -22,31 +24,55 @@ export default function Colheita() {
     status: "Crescendo"
   });
 
-  const [colheitas, setColheitas] = useState([
-    { id: 1, cultura: "Alface Crespa", setor: "Fazenda Vertical 01", plantio: "15/02/2026", previsao: "28/03/2026", status: "Pronto", quantidade: "500 pés" },
-    { id: 2, cultura: "Tomate Cereja", setor: "Estufa Leste", plantio: "05/01/2026", previsao: "15/04/2026", status: "Crescendo", quantidade: "120 kg" },
-    { id: 3, cultura: "Morango", setor: "Fazenda Vertical 01", plantio: "10/01/2026", previsao: "10/04/2026", status: "Crescendo", quantidade: "80 kg" },
-    { id: 4, cultura: "Manjericão", setor: "Estufa Leste", plantio: "01/03/2026", previsao: "25/03/2026", status: "Colhido", quantidade: "300 maços" }
-  ]);
+  const [colheitas, setColheitas] = useState([]);
 
   useEffect(() => {
     const userLogado = localStorage.getItem("usuarioLogado");
-    if (!userLogado) navigate("/login");
-    else setUsuario(JSON.parse(userLogado));
+    const token = localStorage.getItem("token");
+    if (!userLogado || !token) navigate("/login");
+    else {
+      const user = JSON.parse(userLogado);
+      setUsuario(user);
+      
+      // Busca do Banco de Dados Real
+      fetch(`${API_URL}/plantacoes/${user.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setColheitas(data); })
+        .catch(err => console.error("Erro ao carregar colheitas:", err));
+    }
   }, [navigate]);
 
-  const salvarNovaPlantacao = (e) => {
+  const salvarNovaPlantacao = async (e) => {
     e.preventDefault(); 
     
-    const plantacaoParaSalvar = {
-      id: Date.now(),
-      ...novaPlantacao
-    };
-    
-    setColheitas([plantacaoParaSalvar, ...colheitas]);
-    
-    setNovaPlantacao({ cultura: "", setor: "", plantio: "", previsao: "", quantidade: "", status: "Crescendo" });
-    setModalAberto(false);
+    // Converte YYYY-MM-DD para DD/MM/YYYY antes de salvar no banco
+    const plantioFormatado = novaPlantacao.plantio.split('-').reverse().join('/');
+    const previsaoFormatada = novaPlantacao.previsao.split('-').reverse().join('/');
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/plantacoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          ...novaPlantacao,
+          plantio: plantioFormatado,
+          previsao: previsaoFormatada,
+          usuario_id: usuario.id
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setColheitas([{ id: data.id, ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada }, ...colheitas]);
+        setNovaPlantacao({ cultura: "", setor: "", plantio: "", previsao: "", quantidade: "", status: "Crescendo" });
+        setModalAberto(false);
+      }
+    } catch (error) {
+      console.error("Erro ao salvar plantação:", error);
+    }
   };
 
   const colheitasFiltradas = colheitas.filter((item) => {

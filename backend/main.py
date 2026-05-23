@@ -128,6 +128,31 @@ class Fatura(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
+# Novo modelo para Colheitas/Plantações
+class Plantacao(Base):
+    __tablename__ = "plantacoes"
+    id = Column(Integer, primary_key=True, index=True)
+    cultura = Column(String(100), nullable=False)
+    setor = Column(String(100), nullable=False)
+    plantio = Column(String(20), nullable=False)
+    previsao = Column(String(20), nullable=False)
+    quantidade = Column(String(50), nullable=False)
+    status = Column(String(20), default="Crescendo")
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+# Novo modelo para Agendamentos/Tarefas
+class Agendamento(Base):
+    __tablename__ = "agendamentos"
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String(150), nullable=False)
+    horario = Column(String(10), nullable=False)
+    tipo = Column(String(50), nullable=False)
+    responsavel = Column(String(100), nullable=False)
+    status = Column(String(20), default="Pendente")
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -217,6 +242,23 @@ class FaturaCreate(BaseModel):
     desc: str
     data: str
     valor: float
+    status: str
+    usuario_id: int
+
+class PlantacaoCreate(BaseModel):
+    cultura: str
+    setor: str
+    plantio: str
+    previsao: str
+    quantidade: str
+    status: str
+    usuario_id: int
+
+class AgendamentoCreate(BaseModel):
+    titulo: str
+    horario: str
+    tipo: str
+    responsavel: str
     status: str
     usuario_id: int
 
@@ -586,3 +628,45 @@ def pagar_fatura(fatura_id: str, db=Depends(get_db), usuario_atual: Usuario = De
     fatura.status = "Pago"
     db.commit()
     return {"mensagem": "Fatura paga com sucesso"}
+
+# ==========================================
+# ROTAS PARA PLANTAÇÕES / COLHEITA
+# ==========================================
+@app.post("/plantacoes", tags=["Colheita"])
+def criar_plantacao(p: PlantacaoCreate, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    nova_plantacao = Plantacao(**p.dict())
+    db.add(nova_plantacao)
+    db.commit()
+    db.refresh(nova_plantacao)
+    return {"mensagem": "Plantação registrada com sucesso", "id": nova_plantacao.id}
+
+@app.get("/plantacoes/{usuario_id}", tags=["Colheita"])
+def listar_plantacoes(usuario_id: int, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    if usuario_atual.id != usuario_id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    plantacoes = db.query(Plantacao).filter(Plantacao.usuario_id == usuario_id).order_by(Plantacao.id.desc()).all()
+    return [
+        {"id": p.id, "cultura": p.cultura, "setor": p.setor, "plantio": p.plantio, "previsao": p.previsao, "quantidade": p.quantidade, "status": p.status} 
+        for p in plantacoes
+    ]
+
+# ==========================================
+# ROTAS PARA AGENDAMENTOS / TAREFAS
+# ==========================================
+@app.post("/agendamentos", tags=["Agendamentos"])
+def criar_agendamento(a: AgendamentoCreate, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    novo_agendamento = Agendamento(**a.dict())
+    db.add(novo_agendamento)
+    db.commit()
+    db.refresh(novo_agendamento)
+    return {"mensagem": "Tarefa registrada com sucesso", "id": novo_agendamento.id}
+
+@app.get("/agendamentos/{usuario_id}", tags=["Agendamentos"])
+def listar_agendamentos(usuario_id: int, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    if usuario_atual.id != usuario_id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    agendamentos = db.query(Agendamento).filter(Agendamento.usuario_id == usuario_id).order_by(Agendamento.id.desc()).all()
+    return [
+        {"id": a.id, "titulo": a.titulo, "horario": a.horario, "tipo": a.tipo, "responsavel": a.responsavel, "status": a.status} 
+        for a in agendamentos
+    ]

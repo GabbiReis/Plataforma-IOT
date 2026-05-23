@@ -8,7 +8,7 @@ import { AlertTriangle, CheckCircle2, Droplets, ThermometerSun, ArrowLeftRight, 
 import imgAgricultor from "../assets/images/agrucutor-acompanhando.jpg";
 import videoDrone from "../assets/videos/drone-monitoramento.mp4";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
 
 export default function Dashboard() {
   const navigate = useNavigate();

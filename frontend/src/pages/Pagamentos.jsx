@@ -6,7 +6,7 @@ import { CreditCard, DollarSign, Download, FileText, Plus, X, Check } from "luci
 import { jsPDF } from "jspdf"; 
 import "../styles/dashboard.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
 
 export default function Pagamentos() {
   const navigate = useNavigate();

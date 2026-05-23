@@ -5,6 +5,8 @@ import Topbar from "../components/Topbar";
 import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, Plus, X } from "lucide-react";
 import "../styles/dashboard.css";
 
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
+
 export default function Agendamentos() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
@@ -19,32 +21,48 @@ export default function Agendamentos() {
     responsavel: ""
   });
 
-  const [tarefas, setTarefas] = useState([
-    { id: 1, titulo: "Irrigação Setor Leste", horario: "08:00", tipo: "Rotina", status: "Concluído", responsavel: "Sistema Automático" },
-    { id: 2, titulo: "Aplicação de Nutrientes (NPK)", horario: "14:30", tipo: "Manejo", status: "Pendente", responsavel: "Operador" },
-    { id: 3, titulo: "Calibração de Sensores", horario: "16:00", tipo: "Manutenção", status: "Pendente", responsavel: "Técnico" },
-    { id: 4, titulo: "Inspeção de Pragas", horario: "17:00", tipo: "Prevenção", status: "Atrasado", responsavel: "Agrônomo" }
-  ]);
+  const [tarefas, setTarefas] = useState([]);
 
   useEffect(() => {
     const userLogado = localStorage.getItem("usuarioLogado");
-    if (!userLogado) navigate("/login");
-    else setUsuario(JSON.parse(userLogado));
+    const token = localStorage.getItem("token");
+    if (!userLogado || !token) navigate("/login");
+    else {
+      const user = JSON.parse(userLogado);
+      setUsuario(user);
+      
+      // Busca do Banco de Dados Real
+      fetch(`${API_URL}/agendamentos/${user.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+           if (Array.isArray(data)) {
+             setTarefas(data);
+             localStorage.setItem('agendamentosAgriNexus', JSON.stringify(data)); // Salva pra notificação do sininho
+           }
+        })
+        .catch(err => console.error("Erro ao carregar agendamentos:", err));
+    }
   }, [navigate]);
 
-  const salvarNovaTarefa = (e) => {
+  const salvarNovaTarefa = async (e) => {
     e.preventDefault();
     
-    const tarefaParaSalvar = {
-      id: Date.now(),
-      ...novaTarefa,
-      status: "Pendente"
-    };
-    
-    setTarefas([...tarefas, tarefaParaSalvar]);
-    
-    setNovaTarefa({ titulo: "", horario: "", tipo: "Rotina", responsavel: "" });
-    setModalAberto(false);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/agendamentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...novaTarefa, status: "Pendente", usuario_id: usuario.id })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTarefas([{ id: data.id, ...novaTarefa, status: "Pendente" }, ...tarefas]);
+        setNovaTarefa({ titulo: "", horario: "", tipo: "Rotina", responsavel: "" });
+        setModalAberto(false);
+      }
+    } catch (error) { console.error(error); }
   };
 
   const tarefasFiltradas = tarefas.filter((t) => {

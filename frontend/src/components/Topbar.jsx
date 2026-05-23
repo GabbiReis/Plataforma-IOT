@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MessageSquare, Bell, ChevronDown, Settings, LogOut, Menu, Battery, Wifi } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
 
 export default function Topbar({ usuario, onSearch, statusIot }) {
   const navigate = useNavigate();
