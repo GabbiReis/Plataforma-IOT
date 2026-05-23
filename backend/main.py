@@ -262,6 +262,13 @@ class AgendamentoCreate(BaseModel):
     status: str
     usuario_id: int
 
+class AgendamentoUpdate(BaseModel):
+    titulo: Optional[str] = None
+    horario: Optional[str] = None
+    tipo: Optional[str] = None
+    responsavel: Optional[str] = None
+    status: Optional[str] = None
+
 # 1. Definindo o "Contrato de Dados" (O que a placa vai mandar)
 class LeituraIoT(BaseModel):
     sensor_id: str
@@ -670,3 +677,29 @@ def listar_agendamentos(usuario_id: int, db=Depends(get_db), usuario_atual: Usua
         {"id": a.id, "titulo": a.titulo, "horario": a.horario, "tipo": a.tipo, "responsavel": a.responsavel, "status": a.status} 
         for a in agendamentos
     ]
+
+@app.put("/agendamentos/{agendamento_id}", tags=["Agendamentos"])
+def atualizar_agendamento(agendamento_id: int, a: AgendamentoUpdate, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if not agendamento:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado")
+    if agendamento.usuario_id != usuario_atual.id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    if a.titulo is not None: agendamento.titulo = a.titulo
+    if a.horario is not None: agendamento.horario = a.horario
+    if a.tipo is not None: agendamento.tipo = a.tipo
+    if a.responsavel is not None: agendamento.responsavel = a.responsavel
+    if a.status is not None: agendamento.status = a.status
+    
+    db.commit()
+    return {"mensagem": "Agendamento atualizado com sucesso"}
+
+@app.delete("/agendamentos/{agendamento_id}", tags=["Agendamentos"])
+def deletar_agendamento(agendamento_id: int, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if not agendamento or agendamento.usuario_id != usuario_atual.id:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado ou acesso negado")
+    db.delete(agendamento)
+    db.commit()
+    return {"mensagem": "Agendamento deletado com sucesso"}

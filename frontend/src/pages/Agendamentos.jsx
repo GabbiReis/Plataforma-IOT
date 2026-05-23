@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
-import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, Plus, X } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, Plus, X, Trash2, Edit, Check } from "lucide-react";
 import "../styles/dashboard.css";
 
 const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000" : "https://backend-production-a8df.up.railway.app");
@@ -14,6 +14,7 @@ export default function Agendamentos() {
   const [textoBusca, setTextoBusca] = useState("");
 
   const [modalAberto, setModalAberto] = useState(false);
+  const [tarefaEditando, setTarefaEditando] = useState(null);
   const [novaTarefa, setNovaTarefa] = useState({
     titulo: "",
     horario: "",
@@ -46,22 +47,75 @@ export default function Agendamentos() {
     }
   }, [navigate]);
 
-  const salvarNovaTarefa = async (e) => {
+  const fecharModal = () => {
+    setModalAberto(false);
+    setTarefaEditando(null);
+    setNovaTarefa({ titulo: "", horario: "", tipo: "Rotina", responsavel: "" });
+  };
+
+  const abrirModalEdicao = (tarefa) => {
+    setTarefaEditando(tarefa);
+    setNovaTarefa({
+      titulo: tarefa.titulo,
+      horario: tarefa.horario,
+      tipo: tarefa.tipo,
+      responsavel: tarefa.responsavel
+    });
+    setModalAberto(true);
+  };
+
+  const salvarTarefa = async (e) => {
     e.preventDefault();
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/agendamentos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ ...novaTarefa, status: "Pendente", usuario_id: usuario.id })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTarefas([{ id: data.id, ...novaTarefa, status: "Pendente" }, ...tarefas]);
-        setNovaTarefa({ titulo: "", horario: "", tipo: "Rotina", responsavel: "" });
-        setModalAberto(false);
+      
+      if (tarefaEditando) {
+        const res = await fetch(`${API_URL}/agendamentos/${tarefaEditando.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(novaTarefa)
+        });
+        if (res.ok) {
+          setTarefas(tarefas.map(t => t.id === tarefaEditando.id ? { ...t, ...novaTarefa } : t));
+          fecharModal();
+        }
+      } else {
+        const res = await fetch(`${API_URL}/agendamentos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ...novaTarefa, status: "Pendente", usuario_id: usuario.id })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTarefas([{ id: data.id, ...novaTarefa, status: "Pendente" }, ...tarefas]);
+          fecharModal();
+        }
       }
+    } catch (error) { console.error(error); }
+  };
+
+  const deletarTarefa = async (id) => {
+    if (!window.confirm("Deseja realmente excluir esta tarefa?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/agendamentos/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setTarefas(tarefas.filter(t => t.id !== id));
+    } catch (error) { console.error(error); }
+  };
+
+  const alterarStatus = async (tarefa, novoStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/agendamentos/${tarefa.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: novoStatus })
+      });
+      if (res.ok) setTarefas(tarefas.map(t => t.id === tarefa.id ? { ...t, status: novoStatus } : t));
     } catch (error) { console.error(error); }
   };
 
@@ -137,6 +191,7 @@ export default function Agendamentos() {
                     <th style={{ padding: '12px 8px' }}>Tipo</th>
                     <th style={{ padding: '12px 8px' }}>Responsável</th>
                     <th style={{ padding: '12px 8px' }}>Status</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'right' }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -159,12 +214,37 @@ export default function Agendamentos() {
                           {t.status}
                         </span>
                       </td>
+                      <td style={{ padding: '16px 8px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        {t.status !== 'Concluído' && (
+                          <button 
+                            onClick={() => alterarStatus(t, 'Concluído')}
+                            style={{ background: '#84E034', border: 'none', color: '#0A2518', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Concluir Tarefa"
+                          >
+                            <Check size={16} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => abrirModalEdicao(t)}
+                          style={{ background: '#f5f5f5', border: '1px solid #ddd', color: '#666', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => deletarTarefa(t.id)}
+                          style={{ background: '#FDEDED', border: '1px solid #FDCFCF', color: '#D32F2F', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
 
                   {tarefasFiltradas.length === 0 && (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>
                         Nenhuma tarefa encontrada para "{textoBusca}"
                       </td>
                     </tr>
@@ -182,13 +262,13 @@ export default function Agendamentos() {
           <div style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: '#0A2518' }}>Nova Tarefa</h2>
-              <button onClick={() => setModalAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
+              <h2 style={{ margin: 0, color: '#0A2518' }}>{tarefaEditando ? "Editar Tarefa" : "Nova Tarefa"}</h2>
+              <button onClick={fecharModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
                 <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={salvarNovaTarefa} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <form onSubmit={salvarTarefa} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Título da Atividade</label>
@@ -242,11 +322,11 @@ export default function Agendamentos() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setModalAberto(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', color: '#333', cursor: 'pointer', fontWeight: 'bold' }}>
+                <button type="button" onClick={fecharModal} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', color: '#333', cursor: 'pointer', fontWeight: 'bold' }}>
                   Cancelar
                 </button>
                 <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#84E034', color: '#0A2518', cursor: 'pointer', fontWeight: 'bold' }}>
-                  Adicionar
+                  {tarefaEditando ? "Salvar Alterações" : "Adicionar"}
                 </button>
               </div>
 
