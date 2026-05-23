@@ -254,6 +254,14 @@ class PlantacaoCreate(BaseModel):
     status: str
     usuario_id: int
 
+class PlantacaoUpdate(BaseModel):
+    cultura: Optional[str] = None
+    setor: Optional[str] = None
+    plantio: Optional[str] = None
+    previsao: Optional[str] = None
+    quantidade: Optional[str] = None
+    status: Optional[str] = None
+
 class AgendamentoCreate(BaseModel):
     titulo: str
     horario: str
@@ -656,6 +664,33 @@ def listar_plantacoes(usuario_id: int, db=Depends(get_db), usuario_atual: Usuari
         {"id": p.id, "cultura": p.cultura, "setor": p.setor, "plantio": p.plantio, "previsao": p.previsao, "quantidade": p.quantidade, "status": p.status} 
         for p in plantacoes
     ]
+
+@app.put("/plantacoes/{plantacao_id}", tags=["Colheita"])
+def atualizar_plantacao(plantacao_id: int, p: PlantacaoUpdate, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    plantacao = db.query(Plantacao).filter(Plantacao.id == plantacao_id).first()
+    if not plantacao:
+        raise HTTPException(status_code=404, detail="Plantação não encontrada")
+    if plantacao.usuario_id != usuario_atual.id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    if p.cultura is not None: plantacao.cultura = p.cultura
+    if p.setor is not None: plantacao.setor = p.setor
+    if p.plantio is not None: plantacao.plantio = p.plantio
+    if p.previsao is not None: plantacao.previsao = p.previsao
+    if p.quantidade is not None: plantacao.quantidade = p.quantidade
+    if p.status is not None: plantacao.status = p.status
+    
+    db.commit()
+    return {"mensagem": "Plantação atualizada com sucesso"}
+
+@app.delete("/plantacoes/{plantacao_id}", tags=["Colheita"])
+def deletar_plantacao(plantacao_id: int, db=Depends(get_db), usuario_atual: Usuario = Depends(get_usuario_atual)):
+    plantacao = db.query(Plantacao).filter(Plantacao.id == plantacao_id).first()
+    if not plantacao or plantacao.usuario_id != usuario_atual.id:
+        raise HTTPException(status_code=404, detail="Plantação não encontrada ou acesso negado")
+    db.delete(plantacao)
+    db.commit()
+    return {"mensagem": "Plantação deletada com sucesso"}
 
 # ==========================================
 # ROTAS PARA AGENDAMENTOS / TAREFAS

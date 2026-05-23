@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
-import { Leaf, Calendar, CheckCircle, Clock, Plus, FileDown, X } from "lucide-react";
+import { Leaf, Calendar, CheckCircle, Clock, Plus, FileDown, X, Trash2, Edit, Check } from "lucide-react";
 import { jsPDF } from "jspdf"; 
 import autoTable from "jspdf-autotable";
 import "../styles/dashboard.css";
@@ -15,6 +15,7 @@ export default function Colheita() {
   const [textoBusca, setTextoBusca] = useState("");
 
   const [modalAberto, setModalAberto] = useState(false);
+  const [plantacaoEditando, setPlantacaoEditando] = useState(null);
   const [novaPlantacao, setNovaPlantacao] = useState({
     cultura: "",
     setor: "",
@@ -44,35 +45,88 @@ export default function Colheita() {
     }
   }, [navigate]);
 
-  const salvarNovaPlantacao = async (e) => {
+  const fecharModal = () => {
+    setModalAberto(false);
+    setPlantacaoEditando(null);
+    setNovaPlantacao({ cultura: "", setor: "", plantio: "", previsao: "", quantidade: "", status: "Crescendo" });
+  };
+
+  const abrirModalEdicao = (item) => {
+    setPlantacaoEditando(item);
+    // O input do tipo 'date' exige o formato YYYY-MM-DD
+    const plantioParts = item.plantio.includes('/') ? item.plantio.split('/').reverse().join('-') : item.plantio;
+    const previsaoParts = item.previsao.includes('/') ? item.previsao.split('/').reverse().join('-') : item.previsao;
+    
+    setNovaPlantacao({
+      cultura: item.cultura,
+      setor: item.setor,
+      plantio: plantioParts,
+      previsao: previsaoParts,
+      quantidade: item.quantidade,
+      status: item.status
+    });
+    setModalAberto(true);
+  };
+
+  const salvarPlantacao = async (e) => {
     e.preventDefault(); 
     
-    // Converte YYYY-MM-DD para DD/MM/YYYY antes de salvar no banco
     const plantioFormatado = novaPlantacao.plantio.split('-').reverse().join('/');
     const previsaoFormatada = novaPlantacao.previsao.split('-').reverse().join('/');
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/plantacoes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          ...novaPlantacao,
-          plantio: plantioFormatado,
-          previsao: previsaoFormatada,
-          usuario_id: usuario.id
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setColheitas([{ id: data.id, ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada }, ...colheitas]);
-        setNovaPlantacao({ cultura: "", setor: "", plantio: "", previsao: "", quantidade: "", status: "Crescendo" });
-        setModalAberto(false);
+      
+      if (plantacaoEditando) {
+        const res = await fetch(`${API_URL}/plantacoes/${plantacaoEditando.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada })
+        });
+        if (res.ok) {
+          setColheitas(colheitas.map(c => c.id === plantacaoEditando.id ? { ...c, ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada } : c));
+          fecharModal();
+        }
+      } else {
+        const res = await fetch(`${API_URL}/plantacoes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada, usuario_id: usuario.id })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setColheitas([{ id: data.id, ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada }, ...colheitas]);
+          fecharModal();
+        }
       }
-    } catch (error) {
-      console.error("Erro ao salvar plantação:", error);
-    }
+    } catch (error) { console.error("Erro ao salvar plantação:", error); }
+  };
+
+  const deletarPlantacao = async (id) => {
+    if (!window.confirm("Deseja realmente excluir este lote?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/plantacoes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setColheitas(colheitas.filter(c => c.id !== id));
+    } catch (error) { console.error(error); }
+  };
+
+  const avancarStatus = async (item) => {
+    let novoStatus = "Pronto";
+    if (item.status === "Pronto") novoStatus = "Colhido";
+    if (item.status === "Colhido") return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/plantacoes/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: novoStatus })
+      });
+      if (res.ok) setColheitas(colheitas.map(c => c.id === item.id ? { ...c, status: novoStatus } : c));
+    } catch (error) { console.error(error); }
   };
 
   const colheitasFiltradas = colheitas.filter((item) => {
@@ -172,6 +226,7 @@ export default function Colheita() {
                     <th style={{ padding: '12px 8px' }}>Previsão</th>
                     <th style={{ padding: '12px 8px' }}>Quantidade Estimada</th>
                     <th style={{ padding: '12px 8px' }}>Status</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'right' }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,11 +250,37 @@ export default function Colheita() {
                           {item.status}
                         </span>
                       </td>
+                      <td style={{ padding: '16px 8px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        {item.status === 'Crescendo' && (
+                          <button onClick={() => avancarStatus(item)} style={{ background: '#84E034', border: 'none', color: '#0A2518', padding: '6px', borderRadius: '6px', cursor: 'pointer' }} title="Marcar como Pronto">
+                            <Check size={16} />
+                          </button>
+                        )}
+                        {item.status === 'Pronto' && (
+                          <button onClick={() => avancarStatus(item)} style={{ background: '#0A2518', border: 'none', color: '#84E034', padding: '6px', borderRadius: '6px', cursor: 'pointer' }} title="Realizar Colheita">
+                            <Leaf size={16} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => abrirModalEdicao(item)}
+                          style={{ background: '#f5f5f5', border: '1px solid #ddd', color: '#666', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => deletarPlantacao(item.id)}
+                          style={{ background: '#FDEDED', border: '1px solid #FDCFCF', color: '#D32F2F', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {colheitasFiltradas.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>Nenhuma colheita encontrada para "{textoBusca}"</td>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>Nenhuma colheita encontrada para "{textoBusca}"</td>
                     </tr>
                   )}
                 </tbody>
@@ -215,13 +296,13 @@ export default function Colheita() {
           <div style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: '#0A2518' }}>Registrar Nova Plantação</h2>
-              <button onClick={() => setModalAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
+              <h2 style={{ margin: 0, color: '#0A2518' }}>{plantacaoEditando ? "Editar Plantação" : "Registrar Nova Plantação"}</h2>
+              <button onClick={fecharModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
                 <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={salvarNovaPlantacao} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <form onSubmit={salvarPlantacao} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Cultura (Ex: Tomate, Alface)</label>
@@ -297,11 +378,11 @@ export default function Colheita() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setModalAberto(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', color: '#333', cursor: 'pointer', fontWeight: 'bold' }}>
+                <button type="button" onClick={fecharModal} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', color: '#333', cursor: 'pointer', fontWeight: 'bold' }}>
                   Cancelar
                 </button>
                 <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#84E034', color: '#0A2518', cursor: 'pointer', fontWeight: 'bold' }}>
-                  Salvar Plantação
+                  {plantacaoEditando ? "Salvar Alterações" : "Salvar Plantação"}
                 </button>
               </div>
 
