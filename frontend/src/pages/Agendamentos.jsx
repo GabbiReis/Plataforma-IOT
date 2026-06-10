@@ -32,7 +32,6 @@ export default function Agendamentos() {
       const user = JSON.parse(userLogado);
       setUsuario(user);
       
-      // Busca do Banco de Dados Real
       fetch(`${API_URL}/agendamentos/${user.id}`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
@@ -256,7 +255,6 @@ export default function Agendamentos() {
         </div>
       </main>
 
-      {/* ================= MODAL DE NOVA TAREFA ================= */}
       {modalAberto && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>

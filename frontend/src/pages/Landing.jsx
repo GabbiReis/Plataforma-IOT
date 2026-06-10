@@ -17,11 +17,9 @@ export default function Landing() {
 
   const handleEnviarContato = (e) => {
     e.preventDefault();
-    // Aqui simulamos o envio da mensagem. Num sistema real, mandaria para o backend.
     setEnviado(true);
     setFormContato({ nome: "", email: "", mensagem: "" });
     
-    // Oculta a mensagem de sucesso após 5 segundos
     setTimeout(() => setEnviado(false), 5000);
   };
 

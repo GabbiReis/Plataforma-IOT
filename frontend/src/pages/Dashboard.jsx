@@ -79,7 +79,6 @@ export default function Dashboard() {
           }
         });
 
-        // Se o token estiver inválido ou expirado (Erro 401 do FastAPI)
         if (resposta.status === 401) {
           localStorage.removeItem("usuarioLogado");
           localStorage.removeItem("token");
@@ -100,7 +99,6 @@ export default function Dashboard() {
           atualizacao: dadosReais.registrado_em ? formatarDataHora(dadosReais.registrado_em) : "--"
         });
 
-        // Busca o histórico real do banco para desenhar nos gráficos interativos
         const resHist = await fetch(`${API_URL}/api/leituras/historico`, {
           headers: {
             "Authorization": `Bearer ${token}`
@@ -133,7 +131,6 @@ export default function Dashboard() {
     year: 'numeric' 
   }).format(dataAtual);
 
-  // Lógica de Inteligência e Alertas (Fase 4 do TCC)
   const soloSeco = dadosVitais.umidade !== "--" && parseFloat(dadosVitais.umidade) < limites.umidMin;
   const muitoQuente = dadosVitais.temperatura !== "--" && parseFloat(dadosVitais.temperatura) > limites.tempMax;
 
@@ -145,16 +142,13 @@ export default function Dashboard() {
   
   let ultimas7 = dadosHistorico.slice(-7);
 
-  // Sempre garantimos 7 colunas no gráfico (mesmo se o banco estiver totalmente vazio)
   if (ultimas7.length < 7) {
     const vazios = Array(7 - ultimas7.length).fill({ hora: "--", umidade: 0, temperatura: 0, luz: 0 });
     ultimas7 = [...vazios, ...ultimas7];
   }
 
-  // Calculamos o máximo da luminosidade dinamicamente para o gráfico de barras não ficar achatado e a variação ser perceptível
   const maxLuz = ultimas7.length > 0 ? Math.max(100, ...ultimas7.map(d => Number(d.luz) || 0)) * 1.2 : 4000;
 
-  // Removemos o fallback falso. Agora o sistema roda 100% com os dados reais do banco (ou exibe colunas vazias)
   const dadosSemana = {
     umidade: ultimas7.map(d => ({ dia: d.hora, atual: d.umidade, anterior: Math.max(0, d.umidade - 5), max: 100 })),
     temperatura: ultimas7.map(d => ({ dia: d.hora, atual: d.temperatura, anterior: Math.max(0, d.temperatura - 2), max: 50 })),
@@ -178,7 +172,6 @@ export default function Dashboard() {
 
         <div className="dashboard-content">
 
-          {/* CABEÇALHO COM A ÚLTIMA SINCRONIZAÇÃO */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap', gap: '15px' }}>
             <div>
               <h1 style={{ margin: 0, fontSize: '24px', color: '#0A2518' }}>Visão Geral da Fazenda</h1>
@@ -190,12 +183,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ========================================================== */}
-          {/* NOVA SEÇÃO: ALERTAS INTELIGENTES E SINAIS VITAIS DO SENSOR */}
-          {/* ========================================================== */}
           <section className="dashboard-alerts-row" style={{ marginBottom: "24px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
             
-            {/* CAIXA DE ALERTA DINÂMICA */}
             <div style={{ flex: "1 1 400px", background: (soloSeco || muitoQuente) ? "#FFF0F0" : "#F0FFF4", borderLeft: `5px solid ${(soloSeco || muitoQuente) ? "#FF4D4D" : "#84E034"}`, padding: "20px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "15px", boxShadow: "0 4px 15px rgba(0,0,0,0.03)" }}>
               {(soloSeco || muitoQuente) ? <AlertTriangle color="#FF4D4D" size={35} /> : <CheckCircle2 color="#84E034" size={35} />}
               <div>
@@ -210,7 +199,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* DESTAQUE DE DADOS REAIS DO SENSOR */}
             <div style={{ flex: "1 1 200px", background: "white", padding: "15px 20px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 15px rgba(0,0,0,0.03)" }}>
                <div>
                   <span style={{ fontSize: "12px", color: "#666", fontWeight: "bold", textTransform: "uppercase" }}>Umidade do Solo (LILYGO)</span>
@@ -228,7 +216,6 @@ export default function Dashboard() {
             </div>
             
           </section>
-          {/* ========================================================== */}
 
           <section className="dashboard-top-row">
 
@@ -289,7 +276,6 @@ export default function Dashboard() {
 
           </section>
 
-          {/* BARRA DE FERRAMENTAS INTERATIVA */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '15px' }}>
             <h3 style={{ margin: 0, color: '#0A2518', display: 'flex', alignItems: 'center', gap: '8px' }}>
                <Settings2 size={20} color="#84E034" /> Análises Interativas

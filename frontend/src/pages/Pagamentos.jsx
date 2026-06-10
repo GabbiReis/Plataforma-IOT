@@ -13,7 +13,6 @@ export default function Pagamentos() {
   const [usuario, setUsuario] = useState(null);
   const [textoBusca, setTextoBusca] = useState("");
 
-  // ESTADOS DO MODAL E FORMULÁRIO
   const [modalAberto, setModalAberto] = useState(false);
   const [novaDespesa, setNovaDespesa] = useState({
     desc: "",
@@ -22,7 +21,6 @@ export default function Pagamentos() {
     status: "Em Aberto"
   });
 
-  // DADOS TRANSFORMADOS EM ESTADO COM VALORES NUMÉRICOS REAIS
   const [faturas, setFaturas] = useState([]);
 
   useEffect(() => {
@@ -47,12 +45,10 @@ export default function Pagamentos() {
     }
   }, [navigate]);
 
-  // FUNÇÃO DE FORMATAR MOEDA BRASILEIRA
   const formatarMoeda = (valor) => {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  // CÁLCULOS DINÂMICOS PARA OS CARTÕES DO TOPO
   const totalGasto = faturas
     .filter(f => f.status === "Pago")
     .reduce((acc, curr) => acc + curr.valor, 0);
@@ -61,12 +57,10 @@ export default function Pagamentos() {
     .filter(f => f.status === "Em Aberto")
     .reduce((acc, curr) => acc + curr.valor, 0);
 
-  // FUNÇÃO PARA ADICIONAR DESPESA
   const salvarNovaDespesa = async (e) => {
     e.preventDefault();
     const idAleatorio = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     
-    // Converte a data do formato YYYY-MM-DD para DD/MM/YYYY
     const dataFormatada = novaDespesa.data.split('-').reverse().join('/');
 
     const despesaParaSalvar = {
@@ -105,7 +99,6 @@ export default function Pagamentos() {
     }
   };
 
-  // FUNÇÃO PARA SIMULAR PAGAMENTO (Efeito Uau)
   const pagarFatura = async (id) => {
     try {
       const token = localStorage.getItem("token");
@@ -124,7 +117,6 @@ export default function Pagamentos() {
     }
   };
 
-  // FUNÇÃO PARA GERAR RECIBO EM PDF DA LINHA ESPECÍFICA
   const baixarRecibo = (fatura) => {
     const doc = new jsPDF();
     doc.setFontSize(22);
@@ -188,7 +180,6 @@ export default function Pagamentos() {
               <div style={{ fontSize: '14px', marginTop: '10px', opacity: 0.9 }}>Valor total pendente</div>
             </div>
 
-            {/* CARTÃO DINÂMICO 2 */}
             <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
               <div style={{ color: '#666', fontSize: '14px', marginBottom: '8px' }}>Total Gasto Acumulado (Pago)</div>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#0A2518', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -229,7 +220,6 @@ export default function Pagamentos() {
                       </td>
                       <td style={{ padding: '16px 8px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                         
-                        {/* Botão de Pagar (Só aparece se estiver em aberto) */}
                         {f.status === 'Em Aberto' && (
                           <button 
                             onClick={() => pagarFatura(f.id)}
