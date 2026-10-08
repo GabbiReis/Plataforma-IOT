@@ -10,12 +10,14 @@ from sqlalchemy.sql import func
 import bcrypt
 import json
 import os
+import secrets
 import time
 import jwt
 from datetime import datetime, timedelta, timezone
 import psycopg2
 from google import genai
 from dotenv import load_dotenv
+from prometheus_fastapi_instrumentator import Instrumentator
 
 load_dotenv()
 
@@ -38,6 +40,13 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
+IOT_API_KEY = os.getenv("IOT_API_KEY")
+if not IOT_API_KEY:
+    raise RuntimeError(
+        "IOT_API_KEY não definida. Configure a variável de ambiente antes de iniciar a API "
+        "(veja .env.example). É a chave que autentica a placa física ao enviar leituras."
+    )
+
 app = FastAPI(title="AgriNexus API", description="Backend Completo - Autenticação e IoT", version="1.1.0")
 
 CORS_ALLOW_ORIGINS = [
@@ -53,6 +62,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(app)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -401,8 +412,8 @@ def registrar_leitura(leitura: LeituraCreate, db=Depends(get_db)):
 @app.post("/api/leituras", status_code=201, tags=["IoT - Placa Física"])
 async def receber_leitura(leitura: LeituraIoT, x_api_key: str = Header(None), db=Depends(get_db)):
 
-    # Lembre-se de colocar a mesma senha lá no código da Arduino IDE
-    if x_api_key != "0qVuTNzzoCmkVINzstAWAMuJhTjDNIVN":
+    # Esta mesma chave precisa estar gravada no firmware da placa (Arduino IDE)
+    if not IOT_API_KEY or not secrets.compare_digest(x_api_key or "", IOT_API_KEY):
         raise HTTPException(status_code=401, detail="Acesso não autorizado. Chave inválida.")
 
     try:

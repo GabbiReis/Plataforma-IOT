@@ -17,6 +17,22 @@ Além do monitoramento em tempo real, o sistema conta com recursos de **Intelig�
 
 ---
 
+## 🖥️ Interface
+
+<div align="center">
+<img src="./docs/images/landing.png" alt="Página inicial do AgriNexus" width="800"/>
+<br/><em>Página inicial</em>
+</div>
+
+<br/>
+
+<div align="center">
+<img src="./docs/images/chatbot.png" alt="Chatbot Agrônomo analisando dados dos sensores" width="420"/>
+<br/><em>Chatbot Agrônomo interpretando as leituras dos sensores em tempo real</em>
+</div>
+
+---
+
 ## 🧩 Tecnologias Utilizadas
 
 | Categoria | Tecnologia | Descrição |
@@ -26,7 +42,7 @@ Além do monitoramento em tempo real, o sistema conta com recursos de **Intelig�
 | **Banco de Dados** | [PostgreSQL](https://www.postgresql.org/) | Armazenamento relacional estruturado utilizando o ORM **SQLAlchemy**. |
 | **Inteligência Artificial** | Google Gemini (2.5-flash) | Processamento de linguagem natural para geração de insights em tempo real e Chatbot. |
 | **Segurança** | JWT & bcrypt | Fluxo de autenticação OAuth2 com emissão de Tokens e criptografia avançada de senhas. |
-| **Hardware IoT** | C++ / ESP32 | Sensores de umidade de solo e ambiente que se comunicam com a API via requisições HTTP POST. |
+| **Hardware IoT** | C++ / ESP32 (Arduino IDE) | Placa LILYGO T-Higrow programada em C++ pela Arduino IDE, com sensores calibrados de umidade de solo e ambiente, que se comunicam com a API via requisições HTTP POST autenticadas. |
 | **Deploy / Nuvem** | Railway / Render | Hospedagem da aplicação e do banco de dados na nuvem para acesso global. |
 
 ---
@@ -37,6 +53,40 @@ O repositório está dividido em dois blocos principais:
 
 *   **/backend:** Contém toda a lógica do servidor em Python (FastAPI), modelos do banco de dados (SQLAlchemy), esquemas de validação (Pydantic), integração com a IA (Google GenAI) e rotas de segurança (JWT).
 *   **/frontend:** Contém a aplicação web construída em React.js (Vite), incluindo páginas do painel de controle, gráficos interativos, chatbot e componentes visuais.
+
+---
+
+## 🔌 Integração com o Hardware
+
+A placa **LILYGO T-Higrow** (ESP32) foi programada em **C++ pela Arduino IDE** e teve seus
+sensores **calibrados** antes da coleta — etapa necessária porque o sensor capacitivo de
+umidade de solo entrega leituras brutas que variam conforme o solo e a alimentação, e sem
+calibração os valores não correspondem à umidade real.
+
+A cada ciclo, a placa envia as leituras para a API:
+
+```http
+POST /api/leituras
+x-api-key: <chave do dispositivo>
+
+{
+  "sensor_id": "placa-01",
+  "umidade_solo": 64.0,
+  "temperatura": 24.4,
+  "umidade_ar": 55.0,
+  "luz": 7.5,
+  "bateria": 3.9,
+  "rssi": -62,
+  "firmware": "1.0.0"
+}
+```
+
+A autenticação é feita por um cabeçalho `x-api-key`, cujo valor precisa ser **o mesmo**
+gravado no firmware da placa e configurado na variável de ambiente `IOT_API_KEY` da API.
+Requisições sem a chave correta recebem `401`, impedindo que terceiros injetem leituras
+falsas. Além da umidade e temperatura, a placa reporta luminosidade, salinidade, tensão de
+bateria e intensidade do sinal Wi-Fi (RSSI), o que permite monitorar também a saúde do
+próprio dispositivo em campo.
 
 ---
 
@@ -85,29 +135,53 @@ reais encontrados pelo caminho, inclusive onde a solução "ideal" não foi viá
 ## Arquitetura
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor':'#123526',
+  'primaryTextColor':'#f4f7f5',
+  'primaryBorderColor':'#63d66c',
+  'lineColor':'#63d66c',
+  'secondaryColor':'#0f2a1f',
+  'tertiaryColor':'#0f2a1f',
+  'clusterBkg':'#0f2a1f',
+  'clusterBorder':'#63d66c',
+  'fontFamily':'Segoe UI, Roboto, sans-serif'
+}}}%%
 flowchart TB
-    subgraph dev["Desenvolvimento"]
-        A[Código] --> B[GitHub]
+    subgraph campo["🌱 Campo"]
+        S["LILYGO T-Higrow<br/>ESP32 · C++"]
     end
 
-    subgraph ci["CI/CD — GitHub Actions"]
-        B --> C[Lint + Testes]
-        C --> D[Build das imagens]
-        D --> E[Scan Trivy]
-        E --> F[(GHCR)]
+    subgraph entrega["⚙️ Entrega contínua — GitHub Actions"]
+        A["Código"] --> B["GitHub"]
+        B --> C["Lint + Testes"]
+        C --> D["Build das imagens"]
+        D --> E["Scan Trivy"]
+        E --> F[("GHCR")]
     end
 
-    subgraph k8s["Kubernetes"]
-        F --> G[Ingress]
-        G --> H[Frontend<br/>nginx]
-        G --> I[Backend<br/>FastAPI]
-        I --> J[(PostgreSQL<br/>StatefulSet + PVC)]
+    subgraph cluster["☸️ Kubernetes"]
+        G{{"Ingress"}}
+        G --> H["Frontend<br/>React · nginx"]
+        G --> I["Backend<br/>FastAPI"]
+        I --> J[("PostgreSQL<br/>StatefulSet + PVC")]
+        I -.->|"métricas"| M["Prometheus"]
+        M --> N["Grafana"]
     end
 
-    subgraph infra["Infraestrutura — Terraform"]
-        K[Módulos OCI] -.provisiona.-> k8s
-        L[Módulos AWS] -.provisiona.-> k8s
+    subgraph nuvem["🌍 Infraestrutura — Terraform"]
+        O["Módulos OCI<br/>VCN · OKE · k3s"]
+        P["Módulos AWS<br/>VPC · EC2 + k3s"]
     end
+
+    S -->|"HTTP POST<br/>leituras"| G
+    F -->|"imagens"| cluster
+    O -.->|"provisiona"| cluster
+    P -.->|"provisiona"| cluster
+
+    classDef destaque fill:#63d66c,stroke:#0f2a1f,color:#0f2a1f,font-weight:bold
+    classDef dados fill:#123526,stroke:#bff3a7,color:#f4f7f5
+    class S,G destaque
+    class J,F,M,N dados
 ```
 
 Os manifests do Kubernetes são os mesmos em todos os ambientes: um **base** comum e
@@ -238,6 +312,37 @@ job ruído; e o Trivy falha somente em **CRITICAL com correção disponível**, 
 imagens base carregam dezenas de HIGH sem patch upstream, que bloqueariam o pipeline sem
 nenhuma ação possível.
 
+## Observabilidade
+
+A API é instrumentada com `prometheus-fastapi-instrumentator` e expõe `/metrics` com
+métricas de negócio da própria aplicação — contagem de requisições, latência por rota e
+códigos de status — em vez de apenas métricas genéricas de infraestrutura.
+
+```bash
+cp k8s/observability/secret.env.example k8s/observability/secret.env
+kubectl apply -k k8s/observability
+```
+
+Grafana em `http://grafana.127.0.0.1.nip.io` e Prometheus em
+`http://prometheus.127.0.0.1.nip.io`.
+
+| Componente | Função |
+|---|---|
+| Prometheus | Descobre os pods automaticamente via anotações `prometheus.io/*` e coleta a cada 15s |
+| Grafana | Datasource e dashboard provisionados por código, sem configuração manual |
+
+O dashboard **AgriNexus — API** traz taxa de requisições, latência p95, taxa de erro 5xx,
+pods ativos e séries temporais por rota e por código de status.
+
+Duas decisões conscientes para o contexto de laboratório: o Prometheus usa `emptyDir` com
+retenção de 6h, em vez de volume persistente — reiniciar o pod descarta o histórico, o que
+é aceitável aqui e evita consumir armazenamento; e a senha do Grafana vem de um `Secret`
+gerado a partir de um arquivo que nunca é versionado.
+
+Vale registrar que este stack consome cerca de 400MB de RAM, o que **não caberia** no nó
+Always Free da OCI (1GB) — mais um ponto em que a restrição de recursos gratuitos moldou a
+arquitetura.
+
 ## Segurança
 
 - Segredos **apenas** por variável de ambiente, com falha explícita na inicialização
@@ -282,6 +387,7 @@ nos overlays de nuvem.
 ├── backend/            # FastAPI + testes
 ├── frontend/           # React
 ├── k8s/                # manifests Kubernetes (Kustomize)
+│   └── observability/  # Prometheus + Grafana
 ├── terraform/          # infraestrutura como código
 ├── .github/workflows/  # pipelines de CI/CD
 └── docker-compose.yml

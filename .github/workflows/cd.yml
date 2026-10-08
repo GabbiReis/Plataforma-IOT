@@ -99,6 +99,7 @@ jobs:
           POSTGRES_DB=${{ secrets.POSTGRES_DB }}
           SECRET_KEY=${{ secrets.APP_SECRET_KEY }}
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          IOT_API_KEY=${{ secrets.IOT_API_KEY }}
           EOF
 
       - name: Apontar para as imagens recém-publicadas

@@ -50,6 +50,7 @@ jobs:
         working-directory: backend
         env:
           SECRET_KEY: chave-de-teste-exclusiva-do-ci-com-mais-de-32-bytes
+          IOT_API_KEY: chave-iot-de-teste-do-ci
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agrinexus_test
         run: python -m pytest tests/ -v
 

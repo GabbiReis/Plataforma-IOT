@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -56,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: agrinexus-secrets
                   key: GEMINI_API_KEY
+            - name: IOT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agrinexus-secrets
+                  key: IOT_API_KEY
           readinessProbe:
             httpGet:
               path: /health
