@@ -1,0 +1,14 @@
+# Copie para "terraform.tfvars" (mesma pasta) e preencha com valores reais.
+# terraform.tfvars NUNCA deve ser commitado (já está no .gitignore).
+
+tenancy_ocid        = "ocid1.tenancy.oc1..aaaaaaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+user_ocid           = "ocid1.user.oc1..aaaaaaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+fingerprint         = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+private_key_path    = "~/.oci/oci_api_key.pem"
+region              = "sa-saopaulo-1"
+compartment_id      = "ocid1.compartment.oc1..aaaaaaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+
+# Ajuste se houver erro "Out of host capacity" no shape padrão (2/12)
+node_ocpus          = 2
+node_memory_in_gbs  = 12

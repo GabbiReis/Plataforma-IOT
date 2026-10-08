@@ -1,0 +1,19 @@
+:root{
+  --bg: #f4f7f5;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #6b7280;
+
+  --green-900: #0f2a1f;
+  --green-800: #123526;
+  --green-500: #63d66c;
+  --green-300: #bff3a7;
+
+  --border: rgba(15, 23, 42, 0.08);
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --radius: 18px;
+}
+
+*{ box-sizing: border-box; }
+html, body, #root{ height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+a{ color: inherit; text-decoration: none; }

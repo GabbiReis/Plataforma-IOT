@@ -1,0 +1,391 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
+import { Leaf, Calendar, CheckCircle, Clock, Plus, FileDown, X, Trash2, Edit, Check } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import "../styles/dashboard.css";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
+export default function Colheita() {
+  const navigate = useNavigate();
+  const [usuario, setUsuario] = useState(null);
+  const [textoBusca, setTextoBusca] = useState("");
+
+  const [modalAberto, setModalAberto] = useState(false);
+  const [plantacaoEditando, setPlantacaoEditando] = useState(null);
+  const [novaPlantacao, setNovaPlantacao] = useState({
+    cultura: "",
+    setor: "",
+    plantio: "",
+    previsao: "",
+    quantidade: "",
+    status: "Crescendo"
+  });
+
+  const [colheitas, setColheitas] = useState([]);
+
+  useEffect(() => {
+    const userLogado = localStorage.getItem("usuarioLogado");
+    const token = localStorage.getItem("token");
+    if (!userLogado || !token) navigate("/login");
+    else {
+      const user = JSON.parse(userLogado);
+      setUsuario(user);
+
+      fetch(`${API_URL}/plantacoes/${user.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setColheitas(data); })
+        .catch(err => console.error("Erro ao carregar colheitas:", err));
+    }
+  }, [navigate]);
+
+  const fecharModal = () => {
+    setModalAberto(false);
+    setPlantacaoEditando(null);
+    setNovaPlantacao({ cultura: "", setor: "", plantio: "", previsao: "", quantidade: "", status: "Crescendo" });
+  };
+
+  const abrirModalEdicao = (item) => {
+    setPlantacaoEditando(item);
+    const plantioParts = item.plantio.includes('/') ? item.plantio.split('/').reverse().join('-') : item.plantio;
+    const previsaoParts = item.previsao.includes('/') ? item.previsao.split('/').reverse().join('-') : item.previsao;
+
+    setNovaPlantacao({
+      cultura: item.cultura,
+      setor: item.setor,
+      plantio: plantioParts,
+      previsao: previsaoParts,
+      quantidade: item.quantidade,
+      status: item.status
+    });
+    setModalAberto(true);
+  };
+
+  const salvarPlantacao = async (e) => {
+    e.preventDefault();
+
+    const plantioFormatado = novaPlantacao.plantio.split('-').reverse().join('/');
+    const previsaoFormatada = novaPlantacao.previsao.split('-').reverse().join('/');
+
+    try {
+      const token = localStorage.getItem("token");
+
+      if (plantacaoEditando) {
+        const res = await fetch(`${API_URL}/plantacoes/${plantacaoEditando.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada })
+        });
+        if (res.ok) {
+          setColheitas(colheitas.map(c => c.id === plantacaoEditando.id ? { ...c, ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada } : c));
+          fecharModal();
+        }
+      } else {
+        const res = await fetch(`${API_URL}/plantacoes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada, usuario_id: usuario.id })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setColheitas([{ id: data.id, ...novaPlantacao, plantio: plantioFormatado, previsao: previsaoFormatada }, ...colheitas]);
+          fecharModal();
+        }
+      }
+    } catch (error) { console.error("Erro ao salvar plantação:", error); }
+  };
+
+  const deletarPlantacao = async (id) => {
+    if (!window.confirm("Deseja realmente excluir este lote?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/plantacoes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setColheitas(colheitas.filter(c => c.id !== id));
+    } catch (error) { console.error(error); }
+  };
+
+  const avancarStatus = async (item) => {
+    let novoStatus = "Pronto";
+    if (item.status === "Pronto") novoStatus = "Colhido";
+    if (item.status === "Colhido") return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/plantacoes/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: novoStatus })
+      });
+      if (res.ok) setColheitas(colheitas.map(c => c.id === item.id ? { ...c, status: novoStatus } : c));
+    } catch (error) { console.error(error); }
+  };
+
+  const colheitasFiltradas = colheitas.filter((item) => {
+    const termo = textoBusca.toLowerCase();
+    return (
+      item.cultura.toLowerCase().includes(termo) ||
+      item.setor.toLowerCase().includes(termo) ||
+      item.status.toLowerCase().includes(termo)
+    );
+  });
+
+  const qtdCrescendo = colheitas.filter(c => c.status === "Crescendo").length;
+  const qtdPronto = colheitas.filter(c => c.status === "Pronto").length;
+  const qtdColhido = colheitas.filter(c => c.status === "Colhido").length;
+
+  const gerarPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(10, 37, 24);
+    doc.text("AgriNexus - Relatório de Safra", 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
+    doc.text(`Gerado em: ${dataHoje} | Usuário: ${usuario?.nome_completo || 'Sistema'}`, 14, 28);
+
+    const colunas = ["Cultura", "Setor", "Data Plantio", "Previsão", "Quantidade", "Status"];
+    const linhas = colheitasFiltradas.map(item => [item.cultura, item.setor, item.plantio, item.previsao, item.quantidade, item.status]);
+
+    autoTable(doc, {
+      startY: 35, head: [colunas], body: linhas, theme: 'grid',
+      headStyles: { fillColor: [132, 224, 52], textColor: [10, 37, 24], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+    });
+
+    doc.save(`Relatorio_Colheita_${dataHoje.replace(/\//g, '-')}.pdf`);
+  };
+
+  if (!usuario) return null;
+
+  return (
+    <div className="dashboard-layout">
+      <Sidebar />
+      <main className="dashboard-main">
+        <Topbar usuario={usuario} onSearch={setTextoBusca} />
+
+        <div className="dashboard-content">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '15px' }}>
+            <div>
+              <h1 style={{ fontSize: '24px', color: '#0A2518' }}>Gestão de Colheitas</h1>
+              <p style={{ color: '#666' }}>Acompanhe o ciclo de vida das suas plantações</p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={gerarPDF} style={{ background: 'white', color: '#0A2518', border: '1px solid #ddd', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                <FileDown size={20} /> Baixar Relatório PDF
+              </button>
+
+              <button
+                onClick={() => setModalAberto(true)}
+                style={{ background: '#84E034', color: '#0A2518', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'transform 0.1s' }}
+              >
+                <Plus size={20} /> Nova Plantação
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
+            <div style={{ flex: 1, background: 'white', padding: '20px', borderRadius: '16px', borderLeft: '5px solid #0A2518', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <div style={{ color: '#666', fontSize: '14px', marginBottom: '8px' }}>Em Crescimento</div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#0A2518', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Clock size={28} color="#0A2518" /> {qtdCrescendo} {qtdCrescendo === 1 ? 'Lote' : 'Lotes'}
+              </div>
+            </div>
+            <div style={{ flex: 1, background: 'white', padding: '20px', borderRadius: '16px', borderLeft: '5px solid #84E034', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <div style={{ color: '#666', fontSize: '14px', marginBottom: '8px' }}>Pronto para Colher</div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#0A2518', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CheckCircle size={28} color="#84E034" /> {qtdPronto} {qtdPronto === 1 ? 'Lote' : 'Lotes'}
+              </div>
+            </div>
+            <div style={{ flex: 1, background: 'white', padding: '20px', borderRadius: '16px', borderLeft: '5px solid #ccc', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <div style={{ color: '#666', fontSize: '14px', marginBottom: '8px' }}>Já Colhidos (Mês)</div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#0A2518', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Leaf size={28} color="#ccc" /> {qtdColhido} {qtdColhido === 1 ? 'Lote' : 'Lotes'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#0A2518' }}>Lotes Ativos</h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #eee', color: '#666' }}>
+                    <th style={{ padding: '12px 8px' }}>Cultura</th>
+                    <th style={{ padding: '12px 8px' }}>Local</th>
+                    <th style={{ padding: '12px 8px' }}>Data Plantio</th>
+                    <th style={{ padding: '12px 8px' }}>Previsão</th>
+                    <th style={{ padding: '12px 8px' }}>Quantidade Estimada</th>
+                    <th style={{ padding: '12px 8px' }}>Status</th>
+                    <th style={{ padding: '12px 8px', textAlign: 'right' }}>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {colheitasFiltradas.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: '16px 8px', fontWeight: 'bold', color: '#0A2518' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Leaf size={16} color="#84E034" /> {item.cultura}</div>
+                      </td>
+                      <td style={{ padding: '16px 8px', color: '#555' }}>{item.setor}</td>
+                      <td style={{ padding: '16px 8px', color: '#555' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={14}/> {item.plantio}</div>
+                      </td>
+                      <td style={{ padding: '16px 8px', color: '#555' }}>{item.previsao}</td>
+                      <td style={{ padding: '16px 8px', color: '#555' }}>{item.quantidade}</td>
+                      <td style={{ padding: '16px 8px' }}>
+                        <span style={{
+                          padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                          backgroundColor: item.status === 'Pronto' ? '#E8F8E0' : item.status === 'Crescendo' ? '#FFF4E5' : '#F0F0F0',
+                          color: item.status === 'Pronto' ? '#2E7D32' : item.status === 'Crescendo' ? '#ED6C02' : '#666'
+                        }}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 8px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        {item.status === 'Crescendo' && (
+                          <button onClick={() => avancarStatus(item)} style={{ background: '#84E034', border: 'none', color: '#0A2518', padding: '6px', borderRadius: '6px', cursor: 'pointer' }} title="Marcar como Pronto">
+                            <Check size={16} />
+                          </button>
+                        )}
+                        {item.status === 'Pronto' && (
+                          <button onClick={() => avancarStatus(item)} style={{ background: '#0A2518', border: 'none', color: '#84E034', padding: '6px', borderRadius: '6px', cursor: 'pointer' }} title="Realizar Colheita">
+                            <Leaf size={16} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => abrirModalEdicao(item)}
+                          style={{ background: '#f5f5f5', border: '1px solid #ddd', color: '#666', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => deletarPlantacao(item.id)}
+                          style={{ background: '#FDEDED', border: '1px solid #FDCFCF', color: '#D32F2F', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {colheitasFiltradas.length === 0 && (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>Nenhuma colheita encontrada para "{textoBusca}"</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {modalAberto && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#0A2518' }}>{plantacaoEditando ? "Editar Plantação" : "Registrar Nova Plantação"}</h2>
+              <button onClick={fecharModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={salvarPlantacao} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Cultura (Ex: Tomate, Alface)</label>
+                <input
+                  required
+                  type="text"
+                  value={novaPlantacao.cultura}
+                  onChange={(e) => setNovaPlantacao({...novaPlantacao, cultura: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Setor / Local</label>
+                <input
+                  required
+                  type="text"
+                  value={novaPlantacao.setor}
+                  onChange={(e) => setNovaPlantacao({...novaPlantacao, setor: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Data de Plantio</label>
+                  <input
+                    required
+                    type="date"
+                    value={novaPlantacao.plantio}
+                    onChange={(e) => setNovaPlantacao({...novaPlantacao, plantio: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Previsão de Colheita</label>
+                  <input
+                    required
+                    type="date"
+                    value={novaPlantacao.previsao}
+                    onChange={(e) => setNovaPlantacao({...novaPlantacao, previsao: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Qtd. Estimada</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Ex: 50 kg"
+                    value={novaPlantacao.quantidade}
+                    onChange={(e) => setNovaPlantacao({...novaPlantacao, quantidade: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>Status Inicial</label>
+                  <select
+                    required
+                    value={novaPlantacao.status}
+                    onChange={(e) => setNovaPlantacao({...novaPlantacao, status: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none', background: 'white', cursor: 'pointer' }}
+                  >
+                    <option value="Crescendo">🌱 Crescendo</option>
+                    <option value="Pronto">✅ Pronto</option>
+                    <option value="Colhido">📦 Colhido</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" onClick={fecharModal} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', color: '#333', cursor: 'pointer', fontWeight: 'bold' }}>
+                  Cancelar
+                </button>
+                <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#84E034', color: '#0A2518', cursor: 'pointer', fontWeight: 'bold' }}>
+                  {plantacaoEditando ? "Salvar Alterações" : "Salvar Plantação"}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

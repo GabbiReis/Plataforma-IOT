@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint + testes)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agrinexus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Instalar dependências
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        working-directory: backend
+        run: ruff check --select=E9,F63,F7,F82 .
+
+      - name: Testes
+        working-directory: backend
+        env:
+          SECRET_KEY: chave-de-teste-exclusiva-do-ci-com-mais-de-32-bytes
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agrinexus_test
+        run: python -m pytest tests/ -v
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  kubernetes:
+    name: Kubernetes (manifests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Preparar secret de exemplo
+        run: cp k8s/base/secret.env.example k8s/base/secret.env
+
+      - name: Validar overlays
+        run: |
+          for overlay in local oci aws; do
+            echo "::group::overlay $overlay"
+            kubectl kustomize "k8s/overlays/$overlay"
+            echo "::endgroup::"
+          done
+
+  terraform:
+    name: Terraform (fmt + validate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.16.2'
+
+      - name: Checar formatação
+        run: terraform fmt -check -recursive terraform/
+
+      - name: Validar ambientes
+        run: |
+          for env in oci aws; do
+            echo "::group::ambiente $env"
+            terraform -chdir="terraform/environments/$env" init -backend=false -input=false
+            terraform -chdir="terraform/environments/$env" validate
+            echo "::endgroup::"
+          done
+
+  imagens:
+    name: Imagens Docker (build + scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: agrinexus-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          load: true
+          tags: agrinexus-frontend:ci
+          build-args: |
+            REACT_APP_API_URL=${{ vars.REACT_APP_API_URL || 'http://localhost:8000' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan de vulnerabilidades (backend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agrinexus-backend:ci
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Scan de vulnerabilidades (frontend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agrinexus-frontend:ci
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'

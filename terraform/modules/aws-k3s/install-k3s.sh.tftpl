@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eux
+
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --tls-san ${public_ip} --write-kubeconfig-mode 644" sh -
